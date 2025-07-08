@@ -4,6 +4,7 @@ import LoginPage from './components/LoginPage';
 import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
 import DashboardLayout from './layouts/DashboardLayout';
+import Suppliers from './pages/Suppliers';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/customers" element={<Customers />} />
+          <Route path="/suppliers" element={<Suppliers />} />
           {/* Add more like /suppliers, /products, etc. here */}
         </Route>
       </Routes>

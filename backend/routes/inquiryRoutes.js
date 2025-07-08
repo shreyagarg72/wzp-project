@@ -78,7 +78,7 @@ router.post("/", async (req, res) => {
             description: (p.description || '').trim(),
             specifications: (p.specifications || '').trim(),
             uom: (p.uom || '').trim(),
-            inquiryId: [inquiryId], // Make it an array as requested
+            inquiryId: [inquiryId], // Keep as array for Product model
           });
           console.log("✅ Product created successfully:", existing._id);
         } catch (productError) {
@@ -114,8 +114,8 @@ router.post("/", async (req, res) => {
 
     console.log("\n=== CREATING INQUIRY ===");
     const inquiryData = {
-      inquiryId,
-      customerId: new mongoose.Types.ObjectId(customerId), // Ensure it's properly converted
+      inquiryId: inquiryId, // Store as string (not array) for Inquiry model
+      customerId: new mongoose.Types.ObjectId(customerId),
       expectedDelivery: expectedDelivery ? new Date(expectedDelivery) : undefined,
       products: inquiryProducts,
     };
@@ -146,5 +146,18 @@ router.post("/", async (req, res) => {
     });
   }
 });
+// routes/inquiry.js
+router.get('/', async (req, res) => {
+  try {
+    const inquiries = await Inquiry.find()
+      .populate('customerId', 'companyName') // Get companyName from Customer
+      .sort({ createdAt: -1 });
+    res.json(inquiries);
+  } catch (error) {
+    console.error('Error fetching inquiries:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 
 export default router;
