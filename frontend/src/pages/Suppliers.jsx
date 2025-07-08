@@ -6,6 +6,57 @@ export default function InquiryList() {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+// Add inside your component, below the inquiry table
+const [suppliers, setSuppliers] = useState([]);
+const [showSupplierForm, setShowSupplierForm] = useState(false);
+const [supplierForm, setSupplierForm] = useState({
+  companyName: '',
+  supplierName: '',
+  email: '',
+  mobile: '',
+  address: '',
+  gstin: '',
+  specialization: '',
+});
+
+const fetchSuppliers = async () => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/suppliers`);
+    setSuppliers(res.data || []);
+  } catch (err) {
+    console.error('Error fetching suppliers', err);
+  }
+};
+
+useEffect(() => {
+  fetchSuppliers();
+}, []);
+
+const handleSupplierSubmit = async (e) => {
+  e.preventDefault();
+  const payload = {
+    ...supplierForm,
+    specialization: supplierForm.specialization.split(',').map((s) => s.trim())
+  };
+
+  try {
+    await axios.post(`${API_BASE_URL}/api/suppliers`, payload);
+    setSupplierForm({
+      companyName: '',
+      supplierName: '',
+      email: '',
+      mobile: '',
+      address: '',
+      gstin: '',
+      specialization: '',
+    });
+    setShowSupplierForm(false);
+    fetchSuppliers();
+  } catch (err) {
+    console.error('Error adding supplier', err);
+    alert('Failed to add supplier');
+  }
+};
 
   const fetchInquiries = async () => {
     try {
@@ -84,6 +135,78 @@ export default function InquiryList() {
           </table>
         </div>
       )}
+      <div className="mt-12">
+  <div className="flex justify-between items-center mb-4">
+    <h2 className="text-2xl font-semibold text-gray-800">Supplier List</h2>
+    <button
+      onClick={() => setShowSupplierForm(!showSupplierForm)}
+      className="bg-blue-600 text-white px-4 py-2 rounded-md"
+    >
+      {showSupplierForm ? 'Cancel' : '+ Add Supplier'}
+    </button>
+  </div>
+
+  {/* Add Supplier Form */}
+  {showSupplierForm && (
+    <div className="bg-gray-100 p-6 rounded-md mb-6">
+      <form onSubmit={handleSupplierSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Object.entries(supplierForm).map(([key, value]) => (
+          <div key={key}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {key.charAt(0).toUpperCase() + key.slice(1)}
+            </label>
+            <input
+              type="text"
+              value={value}
+              onChange={(e) =>
+                setSupplierForm((prev) => ({ ...prev, [key]: e.target.value }))
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              placeholder={key === 'specialization' ? 'Comma-separated (e.g. Hardware, Electrical)' : ''}
+              required={['companyName', 'supplierName', 'email', 'mobile'].includes(key)}
+            />
+          </div>
+        ))}
+        <div className="col-span-2 flex justify-end">
+          <button
+            type="submit"
+            className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
+          >
+            Add Supplier
+          </button>
+        </div>
+      </form>
     </div>
+  )}
+
+  {/* Supplier Table */}
+  <div className="overflow-x-auto">
+    <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-md">
+      <thead className="bg-gray-100">
+        <tr>
+          <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Supplier ID</th>
+          <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Name</th>
+          <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Company</th>
+          <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Specialization</th>
+          <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Email</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200">
+        {suppliers.map((sup) => (
+          <tr key={sup._id}>
+            <td className="px-4 py-3">{sup.supplierId}</td>
+            <td className="px-4 py-3">{sup.supplierName}</td>
+            <td className="px-4 py-3">{sup.companyName}</td>
+            <td className="px-4 py-3">{sup.specialization.join(', ')}</td>
+            <td className="px-4 py-3">{sup.email}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+    </div>
+    
   );
 }
