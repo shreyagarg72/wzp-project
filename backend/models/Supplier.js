@@ -1,9 +1,17 @@
 import mongoose from 'mongoose';
 
-let autoId = 401;
+// We'll get the next ID dynamically instead of using a static variable
+const getNextSupplierId = async () => {
+  const lastSupplier = await mongoose.model('Supplier').findOne().sort({ supplierId: -1 });
+  return lastSupplier ? lastSupplier.supplierId + 1 : 401;
+};
 
 const supplierSchema = new mongoose.Schema({
-  supplierId: { type: Number, default: () => autoId++, unique: true, required: true },
+  supplierId: { 
+    type: Number, 
+    unique: true, 
+    required: true 
+  },
   companyName: { type: String, required: true },
   supplierName: { type: String, required: true },
   email: { type: String, required: true },
@@ -13,5 +21,13 @@ const supplierSchema = new mongoose.Schema({
   specialization: { type: [String], default: [] }, // e.g. ['Hardware', 'Electrical']
   inquirySent: { type: [String], default: [] }// store inquiryId strings like "INQ-0001"
 }, { timestamps: true });
+
+// Pre-validate middleware to set supplierId before validation
+supplierSchema.pre('validate', async function(next) {
+  if (this.isNew && !this.supplierId) {
+    this.supplierId = await getNextSupplierId();
+  }
+  next();
+});
 
 export default mongoose.model('Supplier', supplierSchema);
