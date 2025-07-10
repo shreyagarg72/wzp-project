@@ -1,6 +1,9 @@
 import express from "express";
 import nodemailer from "nodemailer";
 import Supplier from "../models/Supplier.js";
+import jwt from 'jsonwebtoken';
+import { logActivity } from '../utils/logActivity.js';
+
 import Inquiry from "../models/Inquiry.js";
 import dotenv from 'dotenv';
 dotenv.config();
@@ -16,31 +19,40 @@ const transporter = nodemailer.createTransport({
 });
 
 router.post("/", async (req, res) => {
-  const { inquiryId, customer, expectedDelivery, supplierProductMap } =
-    req.body;
+  const { inquiryId, customer, expectedDelivery, supplierProductMap } = req.body;
+
+  // ✅ Step 1: Get and decode token
+  const authHeader = req.header("Authorization");
+  const token = authHeader?.replace("Bearer ", "");
+
+  if (!token) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  let decodedUser;
+  try {
+    decodedUser = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
 
   try {
     for (const supplierId in supplierProductMap) {
       const supplier = await Supplier.findById(supplierId);
-      console.log("EMAIL_USER:", process.env.EMAIL_USER);
-      console.log(
-        "EMAIL_PASS:",
-        process.env.EMAIL_PASS ? "***loaded***" : "NOT LOADED"
-      );
       if (!supplier) continue;
 
       const productDetails = supplierProductMap[supplierId]
         .map(
           (p, idx) => `
-        <p><strong>Product ${idx + 1}</strong></p>
-        <ul>
-          <li><strong>Name:</strong> ${p.name}</li>
-          <li><strong>Brand:</strong> ${p.brand}</li>
-          <li><strong>Quantity:</strong> ${p.quantity}</li>
-          <li><strong>UOM:</strong> ${p.uom}</li>
-          <li><strong>Specs:</strong> ${p.specifications}</li>
-        </ul>
-      `
+            <p><strong>Product ${idx + 1}</strong></p>
+            <ul>
+              <li><strong>Name:</strong> ${p.name}</li>
+              <li><strong>Brand:</strong> ${p.brand}</li>
+              <li><strong>Quantity:</strong> ${p.quantity}</li>
+              <li><strong>UOM:</strong> ${p.uom}</li>
+              <li><strong>Specs:</strong> ${p.specifications}</li>
+            </ul>
+          `
         )
         .join("<br/>");
 
@@ -51,26 +63,34 @@ router.post("/", async (req, res) => {
         html: `
           <p>Dear ${supplier.supplierName},</p>
           <p>Please provide a quote for the following products under inquiry <strong>${inquiryId}</strong>.</p>
-          <p><strong>Expected Delivery:</strong> ${new Date(
-            expectedDelivery
-          ).toLocaleDateString()}</p>
+          <p><strong>Expected Delivery:</strong> ${new Date(expectedDelivery).toLocaleDateString()}</p>
           ${productDetails}
           <p>Please respond at your earliest with availability and pricing.</p>
           <p>Regards,<br/>${customer.companyName} Procurement Team</p>
         `,
       };
 
-      // Send Mail
       await transporter.sendMail(mailOptions);
 
-      // Update Supplier's inquirySent list
       if (!supplier.inquirySent.includes(inquiryId)) {
         supplier.inquirySent.push(inquiryId);
         await supplier.save();
       }
+
+      // ✅ Log activity for each supplier email sent
+      await logActivity({
+        userId: decodedUser.id,
+        action: "Sent Inquiry Email",
+        targetType: "Supplier",
+        targetId: supplier._id,
+        details: {
+          inquiryId,
+          supplierEmail: supplier.email,
+          supplierName: supplier.supplierName,
+        }
+      });
     }
 
-    // Optionally update Inquiry status to "Processing"
     await Inquiry.updateOne({ inquiryId }, { $set: { status: "Processing" } });
 
     res.json({ message: "Emails sent successfully" });
@@ -79,5 +99,6 @@ router.post("/", async (req, res) => {
     res.status(500).json({ message: "Failed to send emails", error });
   }
 });
+
 
 export default router;

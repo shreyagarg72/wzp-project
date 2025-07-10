@@ -65,7 +65,12 @@ export default function InquiryList() {
     };
 
     try {
-      await axios.post(`${API_BASE_URL}/api/suppliers`, payload);
+      const token = localStorage.getItem("token");
+      await axios.post(`${API_BASE_URL}/api/suppliers`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setSupplierForm({
         companyName: "",
         supplierName: "",
@@ -378,12 +383,21 @@ export default function InquiryList() {
                   });
 
                   try {
-                    await axios.post(`${API_BASE_URL}/api/send-inquiry-mails`, {
-                      inquiryId: selectedInquiry.inquiryId,
-                      expectedDelivery: selectedInquiry.expectedDelivery,
-                      customer: selectedInquiry.customerId,
-                      supplierProductMap,
-                    });
+                    const token = localStorage.getItem("token");
+                    await axios.post(
+                      `${API_BASE_URL}/api/send-inquiry-mails`,
+                      {
+                        inquiryId: selectedInquiry.inquiryId,
+                        expectedDelivery: selectedInquiry.expectedDelivery,
+                        customer: selectedInquiry.customerId,
+                        supplierProductMap,
+                      },
+                      {
+                        headers: {
+                          Authorization: `Bearer ${token}`,
+                        },
+                      }
+                    );
 
                     alert("Emails sent successfully!");
                     setShowQuoteModal(false);
