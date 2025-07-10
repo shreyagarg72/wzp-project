@@ -17,7 +17,22 @@ const inquirySchema = new mongoose.Schema({
   products: [productLineSchema],
   expectedDelivery: { type: Date },
   createdAt: { type: Date, default: Date.now },
-  status: { type: String, enum: ['Open', 'Processing', 'Fulfilled'], default: 'Open' }
+  status: { type: String, enum: ['Open', 'Processing', 'Completed','Fulfilled'], default: 'Open' },
+  // Inside your Inquiry Schema (inquiry.model.js or similar)
+supplierQuotes: [
+  {
+    supplierId: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier' },
+    quotes: [
+      {
+        productId: { type: String },
+        price: { type: Number },
+        availability: { type: String }, // "In Stock", "Out of Stock", etc.
+        expectedDelivery: { type: Date },
+      }
+    ]
+  }
+]
+
 });
 
 const Inquiry = mongoose.model('Inquiry', inquirySchema);

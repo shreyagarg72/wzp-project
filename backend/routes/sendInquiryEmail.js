@@ -71,11 +71,21 @@ router.post("/", async (req, res) => {
       };
 
       await transporter.sendMail(mailOptions);
+const existingEntry = supplier.inquirySent.find(entry => entry.inquiryId === inquiryId);
+const productIds = supplierProductMap[supplierId].map(p => p.productId);
 
-      if (!supplier.inquirySent.includes(inquiryId)) {
-        supplier.inquirySent.push(inquiryId);
-        await supplier.save();
-      }
+if (existingEntry) {
+  // Merge productIds without duplication
+  const newIds = [...new Set([...existingEntry.productIds, ...productIds])];
+  existingEntry.productIds = newIds;
+} else {
+  supplier.inquirySent.push({
+    inquiryId,
+    productIds,
+  });
+}
+await supplier.save();
+
 
       // ✅ Log activity for each supplier email sent
       await logActivity({

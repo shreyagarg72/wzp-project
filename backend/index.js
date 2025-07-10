@@ -28,6 +28,7 @@ app.use('/api', authRoutes); // ✅ use /api prefix
 app.use('/api/customers', customerRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/suppliers', supplierRoutes);
+
 app.use('/api/send-inquiry-mails',sendInquiryEmail);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

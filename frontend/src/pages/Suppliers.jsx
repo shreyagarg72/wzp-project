@@ -21,6 +21,60 @@ export default function InquiryList() {
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [productSupplierMap, setProductSupplierMap] = useState({});
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+  //const [quoteUpdates, setQuoteUpdates] = useState({});
+  //const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  // const handleQuoteInputChange = (supplierId, productId, field, value) => {
+  //   setQuoteUpdates((prev) => {
+  //     const supplier = prev[supplierId] || {};
+  //     const product = supplier[productId] || {};
+  //     return {
+  //       ...prev,
+  //       [supplierId]: {
+  //         ...supplier,
+  //         [productId]: {
+  //           ...product,
+  //           [field]: value,
+  //         },
+  //       },
+  //     };
+  //   });
+  // };
+  // const submitQuoteUpdates = async () => {
+  //   const token = localStorage.getItem("token");
+
+  //   try {
+  //     for (const [supplierId, productMap] of Object.entries(quoteUpdates)) {
+  //       const quotes = Object.entries(productMap).map(
+  //         ([productId, values]) => ({
+  //           productId,
+  //           ...values,
+  //         })
+  //       );
+
+  //       await axios.patch(
+  //         `${API_BASE_URL}/api/inquiries/update-quotes/${selectedInquiry.inquiryId}`,
+  //         {
+  //           supplierId,
+  //           quotes,
+  //         },
+  //         {
+  //           headers: {
+  //             Authorization: `Bearer ${token}`,
+  //           },
+  //         }
+  //       );
+  //     }
+
+  //     alert("Quotes updated successfully");
+  //     setSelectedInquiry(null);
+  //     setQuoteUpdates({});
+  //     fetchInquiries();
+  //   } catch (err) {
+  //     console.error("Error updating quotes:", err);
+  //     alert("Failed to update quotes");
+  //   }
+  // };
 
   const openQuoteModal = (inquiry) => {
     const map = {};
@@ -176,9 +230,10 @@ export default function InquiryList() {
                     ) : (
                       <button
                         className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600"
-                        onClick={() =>
-                          alert(`Update Quote for ${inquiry.inquiryId}`)
-                        }
+                        onClick={() => {
+                          setSelectedInquiry(inquiry);
+                          setShowUpdateModal(true);
+                        }}
                       >
                         Update Inquiry
                       </button>

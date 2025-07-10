@@ -1,9 +1,14 @@
 import mongoose from 'mongoose';
 
-let autoId = 3001;
+const getNextProductId = async () => {
+  const lastProduct = await mongoose.model('Product').findOne().sort({ productId: -1 });
+  return lastProduct ? lastProduct.productId + 1 : 401;
+};
 
 const productSchema = new mongoose.Schema({
-  productId: { type: Number, default: () => autoId++ },  // e.g. PROD-0001
+  productId: { type: Number, 
+    unique: true, 
+    required: true  },  // e.g. PROD-0001
   productName: { type: String, required: true },
   brand: { type: String, required: true },
   category: { type: String },
@@ -14,6 +19,11 @@ const productSchema = new mongoose.Schema({
 }, {
   timestamps: true // Adds createdAt and updatedAt fields
 });
-
+productSchema.pre('validate', async function(next) {
+  if (this.isNew && !this.productId) {
+    this.productId = await getNextProductId();
+  }
+  next();
+});
 const Product = mongoose.model('Product', productSchema);
 export default Product;

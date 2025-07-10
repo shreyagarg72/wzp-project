@@ -19,7 +19,14 @@ const supplierSchema = new mongoose.Schema({
   address: { type: String },
   gstin: { type: String },
   specialization: { type: [String], default: [] }, // e.g. ['Hardware', 'Electrical']
-  inquirySent: { type: [String], default: [] }// store inquiryId strings like "INQ-0001"
+  inquirySent: [
+    {
+      inquiryId: { type: String },
+      productIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }]
+      // This stores actual MongoDB ObjectIds
+    }
+  ]
+
 }, { timestamps: true });
 
 // Pre-validate middleware to set supplierId before validation
