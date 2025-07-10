@@ -7,7 +7,7 @@ export const customerService = {
   fetchCustomers: async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/customers`);
-      
+
       // Ensure the response data is an array
       if (Array.isArray(res.data)) {
         return res.data;
@@ -26,7 +26,12 @@ export const customerService = {
   // Add a new customer
   addCustomer: async (customerData) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/customers`, customerData);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(`${API_BASE_URL}/api/customers`, customerData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       return response.data;
     } catch (error) {
       console.error("Error adding customer:", error);
@@ -37,15 +42,25 @@ export const customerService = {
   // Submit an inquiry
   submitInquiry: async (inquiryData) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/inquiries`, inquiryData);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_BASE_URL}/api/inquiries`,
+        inquiryData,{headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+      );
       return response.data;
     } catch (error) {
       console.error("Error submitting inquiry:", error);
-      
+
       // Handle different error types
       if (error.response) {
         // Server responded with error status
-        const errorMessage = error.response.data?.error || error.response.data?.message || 'Server error occurred';
+        const errorMessage =
+          error.response.data?.error ||
+          error.response.data?.message ||
+          "Server error occurred";
         throw new Error(`Failed to submit inquiry: ${errorMessage}`);
       } else if (error.request) {
         // Request was made but no response received
@@ -55,5 +70,5 @@ export const customerService = {
         throw new Error(`Failed to submit inquiry: ${error.message}`);
       }
     }
-  }
+  },
 };

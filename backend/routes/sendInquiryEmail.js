@@ -51,7 +51,6 @@ router.post("/", async (req, res) => {
         html: `
           <p>Dear ${supplier.supplierName},</p>
           <p>Please provide a quote for the following products under inquiry <strong>${inquiryId}</strong>.</p>
-          <p><strong>Customer:</strong> ${customer.companyName}</p>
           <p><strong>Expected Delivery:</strong> ${new Date(
             expectedDelivery
           ).toLocaleDateString()}</p>
