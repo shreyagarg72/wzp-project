@@ -5,7 +5,8 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { logActivity } from "../utils/logActivity.js";
 const router = express.Router();
-let autoProductId = 3001; // can be persisted if needed
+// Remove this line completely
+// let autoProductId = 3001; // ❌ DELETE THIS
 
 // Helper function to normalize strings for comparison
 const normalizeString = (str) => {
@@ -13,7 +14,6 @@ const normalizeString = (str) => {
 };
 
 // Create new inquiry
-
 router.post("/", async (req, res) => {
   try {
     // ✅ Extract token manually from header
@@ -60,8 +60,9 @@ router.post("/", async (req, res) => {
       let existing = await Product.findOne(query);
 
       if (!existing) {
+        // ✅ Let the schema handle productId generation
         existing = await Product.create({
-          productId: autoProductId++,
+          // ❌ Remove this line: productId: autoProductId++,
           productName: p.name.trim(),
           brand: (p.brand || '').trim(),
           category: (p.category || '').trim(),
@@ -70,6 +71,8 @@ router.post("/", async (req, res) => {
           uom: (p.uom || '').trim(),
           inquiryId: [inquiryId],
         });
+        
+        console.log('✅ Created new product with ID:', existing.productId);
       } else {
         if (!existing.inquiryId.includes(inquiryId)) {
           existing.inquiryId.push(inquiryId);
@@ -122,7 +125,6 @@ router.post("/", async (req, res) => {
 });
 
 
-
 // routes/inquiry.js
 router.get('/', async (req, res) => {
   try {
@@ -136,5 +138,86 @@ router.get('/', async (req, res) => {
   }
 });
 
+// PATCH /api/inquiries/update-quotes/:inquiryId
+router.patch('/update-quotes/:inquiryId', async (req, res) => {
+  const { inquiryId } = req.params;
+  const { supplierId, quotes } = req.body;
+
+  try {
+    const inquiry = await Inquiry.findOne({ inquiryId });
+    if (!inquiry) return res.status(404).json({ error: 'Inquiry not found' });
+
+    const supplierQuoteIndex = inquiry.supplierQuotes.findIndex(
+      (sq) => sq.supplierId.toString() === supplierId
+    );
+
+    if (supplierQuoteIndex !== -1) {
+      // Update existing supplier quotes by merging
+      const existingQuotes = inquiry.supplierQuotes[supplierQuoteIndex].quotes;
+      
+      quotes.forEach(newQuote => {
+        const existingQuoteIndex = existingQuotes.findIndex(
+          eq => eq.productId === newQuote.productId
+        );
+        
+        if (existingQuoteIndex !== -1) {
+          // Merge with existing quote
+          existingQuotes[existingQuoteIndex] = {
+            ...existingQuotes[existingQuoteIndex],
+            ...newQuote
+          };
+        } else {
+          // Add new quote
+          existingQuotes.push(newQuote);
+        }
+      });
+    } else {
+      // Add new quote entry
+      inquiry.supplierQuotes.push({ supplierId, quotes });
+    }
+
+    await inquiry.save();
+    res.json({ message: 'Quotes updated successfully', inquiry });
+  } catch (err) {
+    console.error('Update quotes error:', err);
+    res.status(500).json({ error: 'Failed to update quotes' });
+  }
+});
+// PATCH /api/inquiries/finalize/:inquiryId
+router.patch('/finalize/:inquiryId', async (req, res) => {
+  const { inquiryId } = req.params;
+
+  try {
+    const inquiry = await Inquiry.findOne({ inquiryId });
+    if (!inquiry) return res.status(404).json({ error: 'Inquiry not found' });
+
+    inquiry.status = 'Completed';
+    await inquiry.save();
+
+    res.json({ message: 'Inquiry finalized', status: inquiry.status });
+  } catch (err) {
+    console.error('Finalize error:', err);
+    res.status(500).json({ error: 'Failed to finalize inquiry' });
+  }
+});
+// GET /api/inquiries/:inquiryId
+router.get('/:inquiryId', async (req, res) => {
+  const { inquiryId } = req.params;
+  
+  try {
+    const inquiry = await Inquiry.findOne({ inquiryId })
+      .populate('customerId')
+      .populate('supplierQuotes.supplierId');
+    
+    if (!inquiry) {
+      return res.status(404).json({ error: 'Inquiry not found' });
+    }
+    
+    res.json(inquiry);
+  } catch (err) {
+    console.error('Get inquiry error:', err);
+    res.status(500).json({ error: 'Failed to fetch inquiry' });
+  }
+});
 
 export default router;

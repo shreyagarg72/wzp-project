@@ -1,29 +1,57 @@
 import mongoose from 'mongoose';
 
-const getNextProductId = async () => {
-  const lastProduct = await mongoose.model('Product').findOne().sort({ productId: -1 });
-  return lastProduct ? lastProduct.productId + 1 : 401;
-};
-
 const productSchema = new mongoose.Schema({
-  productId: { type: Number, 
-    unique: true, 
-    required: true  },  // e.g. PROD-0001
+  productId: {
+    type: Number,
+    unique: true,
+    required: true,
+  },
   productName: { type: String, required: true },
   brand: { type: String, required: true },
   category: { type: String },
   description: { type: String },
   specifications: { type: String },
-  uom: { type: String }, // Unit of Measure, e.g. pcs, kg
-  inquiryId: { type: [String], default: [] } // Array of inquiry IDs - multiple inquiries can reference same product
+  uom: { type: String },
+  inquiryId: { type: [String], default: [] }
 }, {
-  timestamps: true // Adds createdAt and updatedAt fields
+  timestamps: true
 });
-productSchema.pre('validate', async function(next) {
-  if (this.isNew && !this.productId) {
-    this.productId = await getNextProductId();
+
+// Counter to handle multiple products in same millisecond
+let timestampCounter = 0;
+let lastTimestamp = 0;
+
+const generateUniqueTimestampId = () => {
+  const now = Date.now();
+  
+  if (now === lastTimestamp) {
+    // Same millisecond - increment counter
+    timestampCounter++;
+  } else {
+    // New millisecond - reset counter
+    timestampCounter = 0;
+    lastTimestamp = now;
   }
-  next();
+  
+  // Combine timestamp with counter
+  // Format: timestamp + counter (padded to 3 digits)
+  const uniqueId = parseInt(`${now}${timestampCounter.toString().padStart(3, '0')}`);
+  
+  return uniqueId;
+};
+
+productSchema.pre('validate', async function (next) {
+  if (this.isNew && !this.productId) {
+    try {
+      this.productId = generateUniqueTimestampId();
+      console.log('Generated unique timestamp ID:', this.productId);
+      next();
+    } catch (err) {
+      next(err);
+    }
+  } else {
+    next();
+  }
 });
-const Product = mongoose.model('Product', productSchema);
-export default Product;
+
+export default mongoose.model('Product', productSchema);
