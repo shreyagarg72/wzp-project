@@ -12,6 +12,7 @@ import supplierRoutes from './routes/supplierRoutes.js';
 import sendInquiryEmail from './routes/sendInquiryEmail.js';
 import sendQuoteRoute from './routes/sendQuoteRoute.js';
 import activityLogRoute from './routes/activityLogRoute.js';
+import productOverviewRoute from './routes/productOverviewRoute.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -32,6 +33,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/completedquote',sendQuoteRoute)
 app.use('/api/send-inquiry-mails',sendInquiryEmail);
 app.use('/api/activitylogs',activityLogRoute);
+app.use('/api/products',productOverviewRoute);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

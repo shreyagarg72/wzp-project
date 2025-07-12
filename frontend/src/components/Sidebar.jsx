@@ -12,7 +12,6 @@ export default function Sidebar() {
     { name: 'Suppliers', icon: <Truck />, to: '/suppliers' },
     { name: 'SendQuote', icon: <FileText />, to: '/respond-customer' },
     { name: 'Products', icon: <ShoppingCart />, to: '/products' },
-    { name: 'Help', icon: <HelpCircle />, to: '/help' },
   ];
 
   // Fetch user data from backend

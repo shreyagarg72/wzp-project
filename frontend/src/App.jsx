@@ -7,7 +7,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Suppliers from "./pages/Suppliers";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { Product } from "./pages/Product";
+import  Product  from "./pages/Product";
 import SendQuotesPage from "./pages/SendQuotesPage";
 
 export default function App() {
