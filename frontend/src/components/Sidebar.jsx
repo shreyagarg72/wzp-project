@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, ShoppingCart, HelpCircle, Truck } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingCart, HelpCircle, Truck, FileText } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 export default function Sidebar() {
@@ -10,6 +10,7 @@ export default function Sidebar() {
     { name: 'Dashboard', icon: <LayoutDashboard />, to: '/dashboard' },
     { name: 'Customers', icon: <Users />, to: '/customers' },
     { name: 'Suppliers', icon: <Truck />, to: '/suppliers' },
+    { name: 'SendQuote', icon: <FileText />, to: '/respond-customer' },
     { name: 'Products', icon: <ShoppingCart />, to: '/products' },
     { name: 'Help', icon: <HelpCircle />, to: '/help' },
   ];

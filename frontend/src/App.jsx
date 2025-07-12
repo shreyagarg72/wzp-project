@@ -7,6 +7,8 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Suppliers from "./pages/Suppliers";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { Product } from "./pages/Product";
+import SendQuotesPage from "./pages/SendQuotesPage";
 
 export default function App() {
   return (
@@ -39,6 +41,22 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Suppliers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/products"
+              element={
+                <ProtectedRoute>
+                  <Product />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/respond-customer"
+              element={
+                <ProtectedRoute>
+                  <SendQuotesPage />
                 </ProtectedRoute>
               }
             />

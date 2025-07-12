@@ -10,7 +10,7 @@ import customerRoutes from './routes/customerRoutes.js'; // ✅ import auth rout
 import inquiryRoutes from './routes/inquiryRoutes.js';
 import supplierRoutes from './routes/supplierRoutes.js';
 import sendInquiryEmail from './routes/sendInquiryEmail.js';
-
+import sendQuoteRoute from './routes/sendQuoteRoute.js'
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -28,7 +28,7 @@ app.use('/api', authRoutes); // ✅ use /api prefix
 app.use('/api/customers', customerRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/suppliers', supplierRoutes);
-
+app.use('/api/completedquote',sendQuoteRoute)
 app.use('/api/send-inquiry-mails',sendInquiryEmail);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

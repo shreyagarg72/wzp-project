@@ -378,7 +378,7 @@ export default function Suppliers() {
                         >
                           {isUpdating ? "Updating..." : "Update Inquiry"}
                         </button>
-                        <button
+                        {/* <button
                           className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
                           onClick={() => {
                             setSelectedInquiry(inquiry);
@@ -387,7 +387,7 @@ export default function Suppliers() {
                           disabled={isUpdating}
                         >
                           {isUpdating ? "Finalizing..." : "Finalize Inquiry"}
-                        </button>
+                        </button> */}
                       </div>
                     )}
                   </td>

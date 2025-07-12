@@ -220,4 +220,5 @@ router.get('/:inquiryId', async (req, res) => {
   }
 });
 
+
 export default router;
