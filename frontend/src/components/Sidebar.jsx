@@ -47,6 +47,7 @@ export default function Sidebar() {
           const userData = await response.json();
           console.log('User data received:', userData); // Debug log
           setUser(userData);
+          localStorage.setItem("userId", userData.id);
         } else {
           const errorData = await response.text();
           console.error('API Error:', response.status, errorData);
