@@ -23,6 +23,7 @@ export default function Suppliers() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [quoteUpdates, setQuoteUpdates] = useState({});
   const [isUpdating, setIsUpdating] = useState(false);
+const [isSendingMail, setIsSendingMail] = useState(false);
 
   const handleQuoteInputChange = (supplierId, productId, field, value) => {
     setQuoteUpdates((prev) => ({
@@ -497,134 +498,168 @@ export default function Suppliers() {
       </div>
 
       {/* Send Quote Modal */}
-      {showQuoteModal && selectedInquiry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-4xl shadow-lg overflow-y-auto max-h-[90vh] relative">
-            <button
-              className="absolute top-2 right-4 text-gray-500 hover:text-gray-700"
-              onClick={() => setShowQuoteModal(false)}
-            >
-              ✕
-            </button>
-            <h2 className="text-xl font-semibold mb-4">
-              Inquiry: {selectedInquiry.inquiryId}
-            </h2>
 
-            <div className="mb-4 text-gray-700">
-              <p>
-                <strong>Customer:</strong>{" "}
-                {selectedInquiry.customerId?.companyName}
+
+
+{/* Send Quote Modal */}
+{showQuoteModal && selectedInquiry && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div className="bg-white p-6 rounded-lg w-full max-w-4xl shadow-lg overflow-y-auto max-h-[90vh] relative">
+      <button
+        className="absolute top-2 right-4 text-gray-500 hover:text-gray-700"
+        onClick={() => setShowQuoteModal(false)}
+        disabled={isSendingMail}
+      >
+        ✕
+      </button>
+      <h2 className="text-xl font-semibold mb-4">
+        Inquiry: {selectedInquiry.inquiryId}
+      </h2>
+
+      <div className="mb-4 text-gray-700">
+        <p>
+          <strong>Customer:</strong>{" "}
+          {selectedInquiry.customerId?.companyName}
+        </p>
+        <p>
+          <strong>Expected Delivery:</strong>{" "}
+          {new Date(
+            selectedInquiry.expectedDelivery
+          ).toLocaleDateString()}
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {selectedInquiry.products.map((product, idx) => (
+          <div key={idx} className="border p-4 rounded-md bg-gray-50">
+            <p>
+              <strong>Product:</strong> {product.name}
+            </p>
+            <p>
+              <strong>Brand:</strong> {product.brand}
+            </p>
+            <p>
+              <strong>Quantity:</strong> {product.quantity}
+            </p>
+            <p>
+              <strong>UOM:</strong> {product.uom}
+            </p>
+            <p>
+              <strong>Specifications:</strong> {product.specifications}
+            </p>
+
+            <div className="mt-3">
+              <p className="font-medium text-gray-700 mb-2">
+                Select Suppliers:
               </p>
-              <p>
-                <strong>Expected Delivery:</strong>{" "}
-                {new Date(
-                  selectedInquiry.expectedDelivery
-                ).toLocaleDateString()}
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              {selectedInquiry.products.map((product, idx) => (
-                <div key={idx} className="border p-4 rounded-md bg-gray-50">
-                  <p>
-                    <strong>Product:</strong> {product.name}
-                  </p>
-                  <p>
-                    <strong>Brand:</strong> {product.brand}
-                  </p>
-                  <p>
-                    <strong>Quantity:</strong> {product.quantity}
-                  </p>
-                  <p>
-                    <strong>UOM:</strong> {product.uom}
-                  </p>
-                  <p>
-                    <strong>Specifications:</strong> {product.specifications}
-                  </p>
-
-                  <div className="mt-3">
-                    <p className="font-medium text-gray-700 mb-2">
-                      Select Suppliers:
-                    </p>
-                    <div className="flex flex-wrap gap-4">
-                      {suppliers.map((sup) => (
-                        <label
-                          key={sup._id}
-                          className="flex items-center space-x-2"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={
-                              productSupplierMap[product.productId]?.includes(
-                                sup._id
-                              ) || false
-                            }
-                            onChange={() =>
-                              toggleSupplierForProduct(
-                                product.productId,
-                                sup._id
-                              )
-                            }
-                          />
-                          <span>
-                            {sup.companyName} ({sup.supplierName})
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={async () => {
-                  const supplierProductMap = {};
-
-                  selectedInquiry.products.forEach((product) => {
-                    const supplierIds =
-                      productSupplierMap[product.productId] || [];
-                    supplierIds.forEach((supplierId) => {
-                      if (!supplierProductMap[supplierId])
-                        supplierProductMap[supplierId] = [];
-                      supplierProductMap[supplierId].push(product);
-                    });
-                  });
-
-                  try {
-                    const token = localStorage.getItem("token");
-                    await axios.post(
-                      `${API_BASE_URL}/api/send-inquiry-mails`,
-                      {
-                        inquiryId: selectedInquiry.inquiryId,
-                        expectedDelivery: selectedInquiry.expectedDelivery,
-                        customer: selectedInquiry.customerId,
-                        supplierProductMap,
-                      },
-                      {
-                        headers: {
-                          Authorization: `Bearer ${token}`,
-                        },
+              <div className="flex flex-wrap gap-4">
+                {suppliers.map((sup) => (
+                  <label
+                    key={sup._id}
+                    className="flex items-center space-x-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        productSupplierMap[product.productId]?.includes(
+                          sup._id
+                        ) || false
                       }
-                    );
-
-                    alert("Emails sent successfully!");
-                    setShowQuoteModal(false);
-                    fetchInquiries();
-                  } catch (err) {
-                    console.error("Error sending mail:", err);
-                    alert("Failed to send emails");
-                  }
-                }}
-                className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
-              >
-                Send Mail
-              </button>
+                      onChange={() =>
+                        toggleSupplierForProduct(
+                          product.productId,
+                          sup._id
+                        )
+                      }
+                      disabled={isSendingMail}
+                    />
+                    <span>
+                      {sup.companyName} ({sup.supplierName})
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
+
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={async () => {
+            // Check if any suppliers are selected
+            const hasSelectedSuppliers = Object.values(productSupplierMap).some(
+              suppliers => suppliers.length > 0
+            );
+            
+            if (!hasSelectedSuppliers) {
+              alert("Please select at least one supplier for the products.");
+              return;
+            }
+
+            // Show confirmation dialog
+            const confirmed = window.confirm(
+              "Are you sure you want to send inquiry emails to the selected suppliers?"
+            );
+            
+            if (!confirmed) {
+              return;
+            }
+
+            setIsSendingMail(true);
+
+            const supplierProductMap = {};
+
+            selectedInquiry.products.forEach((product) => {
+              const supplierIds =
+                productSupplierMap[product.productId] || [];
+              supplierIds.forEach((supplierId) => {
+                if (!supplierProductMap[supplierId])
+                  supplierProductMap[supplierId] = [];
+                supplierProductMap[supplierId].push(product);
+              });
+            });
+
+            try {
+              const token = localStorage.getItem("token");
+              await axios.post(
+                `${API_BASE_URL}/api/send-inquiry-mails`,
+                {
+                  inquiryId: selectedInquiry.inquiryId,
+                  expectedDelivery: selectedInquiry.expectedDelivery,
+                  customer: selectedInquiry.customerId,
+                  supplierProductMap,
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
+
+              alert("Emails sent successfully!");
+              setShowQuoteModal(false);
+              fetchInquiries();
+            } catch (err) {
+              console.error("Error sending mail:", err);
+              alert("Failed to send emails");
+            } finally {
+              setIsSendingMail(false);
+            }
+          }}
+          className={`px-6 py-2 rounded-md text-white ${
+            isSendingMail 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-green-600 hover:bg-green-700'
+          }`}
+          disabled={isSendingMail}
+        >
+          {isSendingMail ? "Sending..." : "Send Mail"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Update Inquiry Modal */}
    
