@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+
 const API_BASE_URL = "http://localhost:5000";
 
 const SendQuotesPage = () => {
   const [inquiries, setInquiries] = useState([]);
   const [marginMap, setMarginMap] = useState({});
+  const [deliveryCharges, setDeliveryCharges] = useState({});
+  const [gstRate, setGstRate] = useState(18); // Default 18% GST
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -16,7 +18,7 @@ const SendQuotesPage = () => {
         // Get token from localStorage (adjust this based on how you store your auth token)
         const token = localStorage.getItem('token');
         
-        const response = await axios.get(
+        const response = await fetch(
           `${API_BASE_URL}/api/completedquote`,
           {
             headers: {
@@ -25,15 +27,20 @@ const SendQuotesPage = () => {
           }
         );
         
-        console.log('Fetched inquiries:', response.data);
-        setInquiries(response.data);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Fetched inquiries:', data);
+        setInquiries(data);
         setError(null);
       } catch (err) {
         console.error("Error loading inquiries:", err);
-        setError(err.response?.data?.error || err.message);
+        setError(err.message);
         
         // If it's a 404, the route doesn't exist
-        if (err.response?.status === 404) {
+        if (err.message.includes('404')) {
           setError("The completed inquiries endpoint is not available. Please check your backend routes.");
         }
       } finally {
@@ -51,8 +58,30 @@ const SendQuotesPage = () => {
     }));
   };
 
+  const handleDeliveryChargeChange = (inquiryId, charges) => {
+    setDeliveryCharges(prev => ({
+      ...prev,
+      [inquiryId]: charges
+    }));
+  };
+
   const calculatePrice = (basePrice, margin) => {
     return basePrice + (basePrice * (margin || 0) / 100);
+  };
+
+  const calculateTotals = (inquiry) => {
+    const subtotal = inquiry.products?.reduce((sum, product) => {
+      const quote = inquiry.supplierQuotes?.flatMap(s => s.quotes)?.find(q => q.productId === product.productId?.toString());
+      const base = quote?.price || 0;
+      const margin = parseFloat(marginMap[inquiry._id + product.productId] || 0);
+      return sum + calculatePrice(base, margin);
+    }, 0) || 0;
+
+    const delivery = parseFloat(deliveryCharges[inquiry._id] || 0);
+    const gstAmount = (subtotal + delivery) * (gstRate / 100);
+    const total = subtotal + delivery + gstAmount;
+
+    return { subtotal, delivery, gstAmount, total };
   };
 
   const sendResponse = (inquiry) => {
@@ -62,11 +91,11 @@ const SendQuotesPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="p-6">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Send Quotations</h1>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Send Quotations</h1>
             <p className="text-gray-600">Loading inquiries...</p>
           </div>
         </div>
@@ -76,28 +105,12 @@ const SendQuotesPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center">
-              <svg className="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Send Quotations
-            </h1>
-            <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">
-                    <strong>Error:</strong> {error}
-                  </p>
-                </div>
-              </div>
+      <div className="p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white border rounded-lg p-6">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">Send Quotations</h1>
+            <div className="bg-red-50 border border-red-200 rounded p-4">
+              <p className="text-red-700"><strong>Error:</strong> {error}</p>
             </div>
           </div>
         </div>
@@ -107,20 +120,12 @@ const SendQuotesPage = () => {
 
   if (inquiries.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center">
-              <svg className="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Send Quotations
-            </h1>
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-gray-500 text-lg">No completed inquiries found.</p>
+      <div className="p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white border rounded-lg p-6">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">Send Quotations</h1>
+            <div className="text-center py-8">
+              <p className="text-gray-500">No completed inquiries found.</p>
             </div>
           </div>
         </div>
@@ -129,142 +134,167 @@ const SendQuotesPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center">
-            <svg className="w-10 h-10 text-blue-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Send Quotations
-          </h1>
-          <p className="text-gray-600 text-lg">Review and send quotations to customers</p>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Send Quotations</h1>
+          <p className="text-gray-600">Review and send quotations to customers</p>
         </div>
 
-        <div className="space-y-8">
-          {inquiries.map(inquiry => (
-            <div key={inquiry._id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">Inquiry #{inquiry.inquiryId}</h2>
-                    <p className="text-blue-100 mt-1">
-                      <span className="inline-flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        {inquiry.customer?.companyName || "N/A"}
-                      </span>
-                    </p>
+        {/* GST Rate Setting */}
+        <div className="bg-white border rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium text-gray-700">GST Rate (%):</label>
+            <input
+              type="number"
+              value={gstRate}
+              onChange={(e) => setGstRate(parseFloat(e.target.value) || 0)}
+              className="w-20 px-3 py-1 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+              min="0"
+              max="100"
+              step="0.1"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {inquiries.map(inquiry => {
+            const { subtotal, delivery, gstAmount, total } = calculateTotals(inquiry);
+            
+            return (
+              <div key={inquiry._id} className="bg-white border rounded-lg">
+                {/* Header */}
+                <div className="bg-blue-600 text-white p-4 rounded-t-lg">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="text-xl font-bold">Inquiry #{inquiry.inquiryId}</h2>
+                      <p className="text-blue-100">{inquiry.customer?.companyName || "N/A"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">Products: {inquiry.products?.length || 0}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="bg-white bg-opacity-20 rounded-lg px-3 py-2">
-                      <p className="text-white text-sm font-medium">Products</p>
-                      <p className="text-white text-xl font-bold">{inquiry.products?.length || 0}</p>
+                </div>
+
+                {/* Products Table */}
+                <div className="p-4">
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Product</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Brand</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Specifications</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Qty</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Delivery</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Base Price</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Margin %</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Final Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inquiry.products?.map((product, index) => {
+                          const supplierQuote = inquiry.supplierQuotes?.flatMap(s => s.quotes)?.find(q => q.productId === product.productId?.toString());
+                          const basePrice = supplierQuote?.price || 0;
+                          const expectedDelivery = supplierQuote?.expectedDelivery || inquiry.expectedDelivery;
+                          const margin = parseFloat(marginMap[inquiry._id + product.productId] || 0);
+                          const finalPrice = calculatePrice(basePrice, margin);
+
+                          return (
+                            <tr key={product.productId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="border border-gray-300 px-3 py-2 text-sm">{product.name}</td>
+                              <td className="border border-gray-300 px-3 py-2 text-sm">{product.brand}</td>
+                              <td className="border border-gray-300 px-3 py-2 text-sm max-w-xs truncate" title={product.specifications}>
+                                {product.specifications}
+                              </td>
+                              <td className="border border-gray-300 px-3 py-2 text-sm">
+                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                  {product.quantity}
+                                </span>
+                              </td>
+                              <td className="border border-gray-300 px-3 py-2 text-sm">
+                                {expectedDelivery ? new Date(expectedDelivery).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="border border-gray-300 px-3 py-2 text-sm font-medium">₹{basePrice.toFixed(2)}</td>
+                              <td className="border border-gray-300 px-3 py-2">
+                                <div className="flex items-center">
+                                  <input
+                                    type="number"
+                                    className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                    value={margin}
+                                    onChange={e => handleMarginChange(inquiry._id, product.productId, e.target.value)}
+                                    placeholder="0"
+                                  />
+                                  <span className="ml-1 text-sm text-gray-500">%</span>
+                                </div>
+                              </td>
+                              <td className="border border-gray-300 px-3 py-2 text-sm font-bold text-green-600">₹{finalPrice.toFixed(2)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Delivery Charges and Total Calculation */}
+                  <div className="mt-6 bg-gray-50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Delivery Charges Input */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Charges</label>
+                        <div className="flex items-center">
+                          <span className="text-sm text-gray-500 mr-2">₹</span>
+                          <input
+                            type="number"
+                            value={deliveryCharges[inquiry._id] || ''}
+                            onChange={(e) => handleDeliveryChargeChange(inquiry._id, e.target.value)}
+                            className="w-32 px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="0.00"
+                            min="0"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Total Calculation */}
+                      <div className="text-right">
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Subtotal:</span>
+                            <span>₹{subtotal.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Delivery Charges:</span>
+                            <span>₹{delivery.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>GST ({gstRate}%):</span>
+                            <span>₹{gstAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="border-t pt-2">
+                            <div className="flex justify-between text-lg font-bold">
+                              <span>Total Amount:</span>
+                              <span>₹{total.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Send Button */}
+                    <div className="mt-4 text-right">
+                      <button
+                        onClick={() => sendResponse(inquiry)}
+                        className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        Send Response to Company
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Products Table */}
-              <div className="p-6">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Product</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specifications</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Base Price</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Margin %</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Final Price</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {inquiry.products?.map((product, index) => {
-                        const supplierQuote = inquiry.supplierQuotes?.flatMap(s => s.quotes)?.find(q => q.productId === product.productId?.toString());
-                        const basePrice = supplierQuote?.price || 0;
-                        const expectedDelivery = supplierQuote?.expectedDelivery || inquiry.expectedDelivery;
-                        const margin = parseFloat(marginMap[inquiry._id + product.productId] || 0);
-                        const finalPrice = calculatePrice(basePrice, margin);
-
-                        return (
-                          <tr key={product.productId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">{product.brand}</div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="text-sm text-gray-900 max-w-xs truncate" title={product.specifications}>
-                                {product.specifications}
-                              </div>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {product.quantity}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {expectedDelivery ? new Date(expectedDelivery).toLocaleDateString() : 'N/A'}
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">₹{basePrice.toFixed(2)}</div>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <input
-                                  type="number"
-                                  className="w-20 px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                  value={margin}
-                                  onChange={e => handleMarginChange(inquiry._id, product.productId, e.target.value)}
-                                  placeholder="0"
-                                />
-                                <span className="ml-1 text-sm text-gray-500">%</span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="text-sm font-bold text-green-600">₹{finalPrice.toFixed(2)}</div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Total and Action */}
-                <div className="mt-6 flex items-center justify-between bg-gray-50 rounded-lg p-4">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-500">Total Amount</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      ₹{
-                        inquiry.products?.reduce((sum, product) => {
-                          const quote = inquiry.supplierQuotes?.flatMap(s => s.quotes)?.find(q => q.productId === product.productId?.toString());
-                          const base = quote?.price || 0;
-                          const margin = parseFloat(marginMap[inquiry._id + product.productId] || 0);
-                          return sum + calculatePrice(base, margin);
-                        }, 0).toFixed(2)
-                      }
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => sendResponse(inquiry)}
-                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    Send Response to Company
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
