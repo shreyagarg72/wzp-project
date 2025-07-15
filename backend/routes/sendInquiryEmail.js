@@ -1,11 +1,11 @@
 import express from "express";
 import nodemailer from "nodemailer";
 import Supplier from "../models/Supplier.js";
-import jwt from 'jsonwebtoken';
-import { logActivity } from '../utils/logActivity.js';
+import jwt from "jsonwebtoken";
+import { logActivity } from "../utils/logActivity.js";
 
 import Inquiry from "../models/Inquiry.js";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 const router = express.Router();
 
@@ -19,7 +19,8 @@ const transporter = nodemailer.createTransport({
 });
 
 router.post("/", async (req, res) => {
-  const { inquiryId, customer, expectedDelivery, supplierProductMap } = req.body;
+  const { inquiryId, customer, expectedDelivery, supplierProductMap } =
+    req.body;
 
   // ✅ Step 1: Get and decode token
   const authHeader = req.header("Authorization");
@@ -61,9 +62,8 @@ router.post("/", async (req, res) => {
         to: supplier.email,
         subject: `Request for Quote - Inquiry ${inquiryId}`,
         html: `
-          <p>Dear ${supplier.supplierName},</p>
-          <p>Please provide a quote for the following products under inquiry <strong>${inquiryId}</strong>.</p>
-          <p><strong>Expected Delivery:</strong> ${new Date(expectedDelivery).toLocaleDateString()}</p>
+          <p>Dear Sir/Ma'am,</p>
+          <p>Please provide a quote for the following products under inquiry <strong>${inquiryId}</strong>.</p> 
           ${productDetails}
           <p>Please respond at your earliest with availability and pricing.</p>
           <p>Regards,<br/>${customer.companyName} Procurement Team</p>
@@ -71,21 +71,24 @@ router.post("/", async (req, res) => {
       };
 
       await transporter.sendMail(mailOptions);
-const existingEntry = supplier.inquirySent.find(entry => entry.inquiryId === inquiryId);
-const productIds = supplierProductMap[supplierId].map(p => p.productId);
+      const existingEntry = supplier.inquirySent.find(
+        (entry) => entry.inquiryId === inquiryId
+      );
+      const productIds = supplierProductMap[supplierId].map((p) => p.productId);
 
-if (existingEntry) {
-  // Merge productIds without duplication
-  const newIds = [...new Set([...existingEntry.productIds, ...productIds])];
-  existingEntry.productIds = newIds;
-} else {
-  supplier.inquirySent.push({
-    inquiryId,
-    productIds,
-  });
-}
-await supplier.save();
-
+      if (existingEntry) {
+        // Merge productIds without duplication
+        const newIds = [
+          ...new Set([...existingEntry.productIds, ...productIds]),
+        ];
+        existingEntry.productIds = newIds;
+      } else {
+        supplier.inquirySent.push({
+          inquiryId,
+          productIds,
+        });
+      }
+      await supplier.save();
 
       // ✅ Log activity for each supplier email sent
       await logActivity({
@@ -97,7 +100,7 @@ await supplier.save();
           inquiryId,
           supplierEmail: supplier.email,
           supplierName: supplier.supplierName,
-        }
+        },
       });
     }
 
@@ -109,6 +112,5 @@ await supplier.save();
     res.status(500).json({ message: "Failed to send emails", error });
   }
 });
-
 
 export default router;
