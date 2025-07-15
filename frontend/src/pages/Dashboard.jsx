@@ -69,7 +69,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex-1 bg-gray-50 p-6">
+    <div className="flex-1 bg-gray-50 p-4">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Total Customers */}
@@ -113,101 +113,136 @@ const Dashboard = () => {
       </div>
 
       {/* Activity Logs */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Recent Activity Logs</h2>
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input
-              type="checkbox"
-              checked={filterThisWeek}
-              onChange={() => setFilterThisWeek(!filterThisWeek)}
-              className="form-checkbox h-4 w-4 text-indigo-600"
-            />
-            Show only this week
-          </label>
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-900">Recent Activity Logs</h2>
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filterThisWeek}
+                onChange={() => setFilterThisWeek(!filterThisWeek)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              />
+              Show only this week
+            </label>
+          </div>
         </div>
 
         {logsToShow.length === 0 ? (
-          <p className="text-sm text-gray-500">No activity logs found.</p>
+          <div className="px-6 py-12 text-center">
+            <div className="text-gray-400 mb-2">
+              <Monitor className="w-12 h-12 mx-auto" />
+            </div>
+            <p className="text-gray-500 text-sm">No activity logs found.</p>
+          </div>
         ) : (
           <>
-            <ul className="divide-y divide-gray-200 text-sm">
-              {currentLogs.map((log, index) => (
-                <li key={log._id} className="py-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="text-gray-800">
-                        <span className="inline-block w-6 h-6 bg-gray-100 rounded-full text-xs font-medium text-gray-600 text-center leading-6 mr-2">
-                          {startIndex + index + 1}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      #
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Action
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Inquiry ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Supplier Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Supplier Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Timestamp
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentLogs.map((log, index) => (
+                    <tr key={log._id} className="hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {startIndex + index + 1}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                          {log.action || 'N/A'}
                         </span>
-                        <strong>{log.action}</strong> on <strong>{log.targetType}</strong>
-                      </div>
-                      {log.details && (
-                        <div className="text-gray-600 text-xs mt-1 ml-8">
-                          {Object.entries(log.details).map(([key, value]) => (
-                            <div key={key}>
-                              {key}: <span className="font-medium">{value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="text-gray-400 text-xs mt-1 ml-8">
-                        {new Date(log.timestamp).toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {log.details?.inquiryId || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {log.details?.supplierEmail || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {log.details?.supplierName || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-700">
-                  Showing {startIndex + 1} to {Math.min(endIndex, logsToShow.length)} of {logsToShow.length} entries
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handlePrevPage}
-                    disabled={currentPage === 1}
-                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md ${
-                      currentPage === 1
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-8 h-8 text-sm rounded-md ${
-                          pageNum === currentPage
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    ))}
+              <div className="bg-white px-6 py-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                    <span className="font-medium">{Math.min(endIndex, logsToShow.length)}</span> of{' '}
+                    <span className="font-medium">{logsToShow.length}</span> entries
                   </div>
-
-                  <button
-                    onClick={handleNextPage}
-                    disabled={currentPage === totalPages}
-                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                      className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                        currentPage === 1
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                      }`}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Previous
+                    </button>
+                    
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-8 h-8 text-sm font-medium rounded-md ${
+                            pageNum === currentPage
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <button
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                        currentPage === totalPages
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                      }`}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

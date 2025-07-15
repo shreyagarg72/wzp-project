@@ -6,7 +6,7 @@ const SendQuotesPage = () => {
   const [inquiries, setInquiries] = useState([]);
   const [marginMap, setMarginMap] = useState({});
   const [deliveryCharges, setDeliveryCharges] = useState({});
-  const [gstRate, setGstRate] = useState(18); // Default 18% GST
+  const [gstRates, setGstRates] = useState({}); // Changed to per-inquiry GST rates
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -34,6 +34,14 @@ const SendQuotesPage = () => {
         const data = await response.json();
         console.log('Fetched inquiries:', data);
         setInquiries(data);
+        
+        // Initialize GST rates with default 18% for each inquiry
+        const initialGstRates = {};
+        data.forEach(inquiry => {
+          initialGstRates[inquiry._id] = 18;
+        });
+        setGstRates(initialGstRates);
+        
         setError(null);
       } catch (err) {
         console.error("Error loading inquiries:", err);
@@ -65,6 +73,13 @@ const SendQuotesPage = () => {
     }));
   };
 
+  const handleGstRateChange = (inquiryId, rate) => {
+    setGstRates(prev => ({
+      ...prev,
+      [inquiryId]: parseFloat(rate) || 0
+    }));
+  };
+
   const calculatePrice = (basePrice, margin) => {
     return basePrice + (basePrice * (margin || 0) / 100);
   };
@@ -78,10 +93,11 @@ const SendQuotesPage = () => {
     }, 0) || 0;
 
     const delivery = parseFloat(deliveryCharges[inquiry._id] || 0);
+    const gstRate = gstRates[inquiry._id] || 18;
     const gstAmount = (subtotal + delivery) * (gstRate / 100);
     const total = subtotal + delivery + gstAmount;
 
-    return { subtotal, delivery, gstAmount, total };
+    return { subtotal, delivery, gstAmount, total, gstRate };
   };
 
   const sendResponse = (inquiry) => {
@@ -141,25 +157,9 @@ const SendQuotesPage = () => {
           <p className="text-gray-600">Review and send quotations to customers</p>
         </div>
 
-        {/* GST Rate Setting */}
-        <div className="bg-white border rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-700">GST Rate (%):</label>
-            <input
-              type="number"
-              value={gstRate}
-              onChange={(e) => setGstRate(parseFloat(e.target.value) || 0)}
-              className="w-20 px-3 py-1 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-              min="0"
-              max="100"
-              step="0.1"
-            />
-          </div>
-        </div>
-
         <div className="space-y-6">
           {inquiries.map(inquiry => {
-            const { subtotal, delivery, gstAmount, total } = calculateTotals(inquiry);
+            const { subtotal, delivery, gstAmount, total, gstRate } = calculateTotals(inquiry);
             
             return (
               <div key={inquiry._id} className="bg-white border rounded-lg">
@@ -236,9 +236,9 @@ const SendQuotesPage = () => {
                     </table>
                   </div>
 
-                  {/* Delivery Charges and Total Calculation */}
+                  {/* Delivery Charges, GST Rate, and Total Calculation */}
                   <div className="mt-6 bg-gray-50 rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {/* Delivery Charges Input */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Charges</label>
@@ -254,6 +254,21 @@ const SendQuotesPage = () => {
                             step="0.01"
                           />
                         </div>
+                      </div>
+
+                      {/* GST Rate Input */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">GST Rate (%)</label>
+                        <input
+                          type="number"
+                          value={gstRates[inquiry._id] || ''}
+                          onChange={(e) => handleGstRateChange(inquiry._id, e.target.value)}
+                          className="w-32 px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="18"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                        />
                       </div>
 
                       {/* Total Calculation */}

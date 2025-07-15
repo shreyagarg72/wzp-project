@@ -113,15 +113,6 @@ export default function Product() {
           </div>
           <p className="text-lg font-bold text-gray-800 mt-1">{flattenedData.length}</p>
         </div>
-        <div className="bg-white p-3 rounded-lg shadow-sm border">
-          <div className="flex items-center gap-2">
-            <Truck className="w-4 h-4 text-orange-600" />
-            <span className="text-xs text-gray-600">Avg. Price</span>
-          </div>
-          <p className="text-lg font-bold text-gray-800 mt-1">
-            ₹{flattenedData.length > 0 ? Math.round(flattenedData.reduce((acc, item) => acc + item.price, 0) / flattenedData.length) : 0}
-          </p>
-        </div>
       </div>
 
       {/* Table */}
