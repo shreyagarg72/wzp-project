@@ -138,10 +138,20 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PATCH /api/inquiries/update-quotes/:inquiryId
 router.patch('/update-quotes/:inquiryId', async (req, res) => {
   const { inquiryId } = req.params;
   const { supplierId, quotes } = req.body;
+
+  const authHeader = req.header("Authorization");
+  const token = authHeader?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ message: "No token provided" });
+
+  let decodedUser;
+  try {
+    decodedUser = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
 
   try {
     const inquiry = await Inquiry.findOne({ inquiryId });
@@ -152,40 +162,61 @@ router.patch('/update-quotes/:inquiryId', async (req, res) => {
     );
 
     if (supplierQuoteIndex !== -1) {
-      // Update existing supplier quotes by merging
       const existingQuotes = inquiry.supplierQuotes[supplierQuoteIndex].quotes;
-      
+
       quotes.forEach(newQuote => {
         const existingQuoteIndex = existingQuotes.findIndex(
           eq => eq.productId === newQuote.productId
         );
-        
         if (existingQuoteIndex !== -1) {
-          // Merge with existing quote
           existingQuotes[existingQuoteIndex] = {
             ...existingQuotes[existingQuoteIndex],
             ...newQuote
           };
         } else {
-          // Add new quote
           existingQuotes.push(newQuote);
         }
       });
     } else {
-      // Add new quote entry
       inquiry.supplierQuotes.push({ supplierId, quotes });
     }
 
     await inquiry.save();
+
+    // ✅ Log activity
+    await logActivity({
+      userId: decodedUser.id,
+      action: "Updated Supplier Quote",
+      targetType: "Inquiry",
+      targetId: inquiry._id,
+      details: {
+        inquiryId: inquiry.inquiryId,
+        supplierId,
+        updatedProducts: quotes.map((q) => q.productId),
+      }
+    });
+
     res.json({ message: 'Quotes updated successfully', inquiry });
   } catch (err) {
     console.error('Update quotes error:', err);
     res.status(500).json({ error: 'Failed to update quotes' });
   }
 });
+
 // PATCH /api/inquiries/finalize/:inquiryId
 router.patch('/finalize/:inquiryId', async (req, res) => {
   const { inquiryId } = req.params;
+
+  const authHeader = req.header("Authorization");
+  const token = authHeader?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ message: "No token provided" });
+
+  let decodedUser;
+  try {
+    decodedUser = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
 
   try {
     const inquiry = await Inquiry.findOne({ inquiryId });
@@ -194,12 +225,25 @@ router.patch('/finalize/:inquiryId', async (req, res) => {
     inquiry.status = 'Completed';
     await inquiry.save();
 
+    // ✅ Log activity
+    await logActivity({
+      userId: decodedUser.id,
+      action: "Finalized Inquiry",
+      targetType: "Inquiry",
+      targetId: inquiry._id,
+      details: {
+        inquiryId: inquiry.inquiryId,
+        status: "Completed",
+      }
+    });
+
     res.json({ message: 'Inquiry finalized', status: inquiry.status });
   } catch (err) {
     console.error('Finalize error:', err);
     res.status(500).json({ error: 'Failed to finalize inquiry' });
   }
 });
+
 // GET /api/inquiries/:inquiryId
 router.get('/:inquiryId', async (req, res) => {
   const { inquiryId } = req.params;

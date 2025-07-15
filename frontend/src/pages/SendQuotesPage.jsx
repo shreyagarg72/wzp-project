@@ -6,7 +6,7 @@ const SendQuotesPage = () => {
   const [inquiries, setInquiries] = useState([]);
   const [marginMap, setMarginMap] = useState({});
   const [deliveryCharges, setDeliveryCharges] = useState({});
-  const [gstRates, setGstRates] = useState({}); // Changed to per-inquiry GST rates
+  const [gstRates, setGstRates] = useState({}); // Changed to per-product GST rates
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -35,10 +35,12 @@ const SendQuotesPage = () => {
         console.log('Fetched inquiries:', data);
         setInquiries(data);
         
-        // Initialize GST rates with default 18% for each inquiry
+        // Initialize GST rates with default 0% for each product
         const initialGstRates = {};
         data.forEach(inquiry => {
-          initialGstRates[inquiry._id] = 18;
+          inquiry.products?.forEach(product => {
+            initialGstRates[inquiry._id + product.productId] = 0;
+          });
         });
         setGstRates(initialGstRates);
         
@@ -73,10 +75,10 @@ const SendQuotesPage = () => {
     }));
   };
 
-  const handleGstRateChange = (inquiryId, rate) => {
+  const handleGstRateChange = (inquiryId, productId, rate) => {
     setGstRates(prev => ({
       ...prev,
-      [inquiryId]: parseFloat(rate) || 0
+      [inquiryId + productId]: parseFloat(rate) || 0
     }));
   };
 
@@ -85,19 +87,25 @@ const SendQuotesPage = () => {
   };
 
   const calculateTotals = (inquiry) => {
-    const subtotal = inquiry.products?.reduce((sum, product) => {
+    let subtotal = 0;
+    let totalGstAmount = 0;
+
+    inquiry.products?.forEach(product => {
       const quote = inquiry.supplierQuotes?.flatMap(s => s.quotes)?.find(q => q.productId === product.productId?.toString());
       const base = quote?.price || 0;
       const margin = parseFloat(marginMap[inquiry._id + product.productId] || 0);
-      return sum + calculatePrice(base, margin);
-    }, 0) || 0;
+      const finalPrice = calculatePrice(base, margin);
+      const gstRate = gstRates[inquiry._id + product.productId] || 0;
+      const gstAmount = finalPrice * (gstRate / 100);
+      
+      subtotal += finalPrice;
+      totalGstAmount += gstAmount;
+    });
 
     const delivery = parseFloat(deliveryCharges[inquiry._id] || 0);
-    const gstRate = gstRates[inquiry._id] || 18;
-    const gstAmount = (subtotal + delivery) * (gstRate / 100);
-    const total = subtotal + delivery + gstAmount;
+    const total = subtotal + delivery + totalGstAmount;
 
-    return { subtotal, delivery, gstAmount, total, gstRate };
+    return { subtotal, delivery, gstAmount: totalGstAmount, total };
   };
 
   const sendResponse = (inquiry) => {
@@ -159,7 +167,7 @@ const SendQuotesPage = () => {
 
         <div className="space-y-6">
           {inquiries.map(inquiry => {
-            const { subtotal, delivery, gstAmount, total, gstRate } = calculateTotals(inquiry);
+            const { subtotal, delivery, gstAmount, total } = calculateTotals(inquiry);
             
             return (
               <div key={inquiry._id} className="bg-white border rounded-lg">
@@ -189,6 +197,7 @@ const SendQuotesPage = () => {
                           <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Delivery</th>
                           <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Base Price</th>
                           <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Margin %</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">GST %</th>
                           <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Final Price</th>
                         </tr>
                       </thead>
@@ -198,7 +207,10 @@ const SendQuotesPage = () => {
                           const basePrice = supplierQuote?.price || 0;
                           const expectedDelivery = supplierQuote?.expectedDelivery || inquiry.expectedDelivery;
                           const margin = parseFloat(marginMap[inquiry._id + product.productId] || 0);
-                          const finalPrice = calculatePrice(basePrice, margin);
+                          const gstRate = gstRates[inquiry._id + product.productId] || 0;
+                          const priceAfterMargin = calculatePrice(basePrice, margin);
+                          const gstAmount = priceAfterMargin * (gstRate / 100);
+                          const finalPrice = priceAfterMargin + gstAmount;
 
                           return (
                             <tr key={product.productId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
@@ -228,6 +240,21 @@ const SendQuotesPage = () => {
                                   <span className="ml-1 text-sm text-gray-500">%</span>
                                 </div>
                               </td>
+                              <td className="border border-gray-300 px-3 py-2">
+                                <div className="flex items-center">
+                                  <input
+                                    type="number"
+                                    className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                    value={gstRate}
+                                    onChange={e => handleGstRateChange(inquiry._id, product.productId, e.target.value)}
+                                    placeholder="18"
+                                    min="0"
+                                    max="100"
+                                    step="0.1"
+                                  />
+                                  <span className="ml-1 text-sm text-gray-500">%</span>
+                                </div>
+                              </td>
                               <td className="border border-gray-300 px-3 py-2 text-sm font-bold text-green-600">₹{finalPrice.toFixed(2)}</td>
                             </tr>
                           );
@@ -236,9 +263,9 @@ const SendQuotesPage = () => {
                     </table>
                   </div>
 
-                  {/* Delivery Charges, GST Rate, and Total Calculation */}
+                  {/* Delivery Charges and Total Calculation */}
                   <div className="mt-6 bg-gray-50 rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Delivery Charges Input */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Charges</label>
@@ -256,35 +283,20 @@ const SendQuotesPage = () => {
                         </div>
                       </div>
 
-                      {/* GST Rate Input */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">GST Rate (%)</label>
-                        <input
-                          type="number"
-                          value={gstRates[inquiry._id] || ''}
-                          onChange={(e) => handleGstRateChange(inquiry._id, e.target.value)}
-                          className="w-32 px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="18"
-                          min="0"
-                          max="100"
-                          step="0.1"
-                        />
-                      </div>
-
                       {/* Total Calculation */}
                       <div className="text-right">
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span>Subtotal:</span>
-                            <span>₹{subtotal.toFixed(2)}</span>
+                            <span>Subtotal (incl. GST):</span>
+                            <span>₹{(subtotal + gstAmount).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Total GST:</span>
+                            <span>₹{gstAmount.toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span>Delivery Charges:</span>
                             <span>₹{delivery.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>GST ({gstRate}%):</span>
-                            <span>₹{gstAmount.toFixed(2)}</span>
                           </div>
                           <div className="border-t pt-2">
                             <div className="flex justify-between text-lg font-bold">
