@@ -627,150 +627,160 @@ export default function Suppliers() {
       )}
 
       {/* Update Inquiry Modal */}
-      {showUpdateModal && selectedInquiry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-5xl shadow-lg overflow-y-auto max-h-[90vh] relative">
-            <button
-              className="absolute top-2 right-4 text-gray-500 hover:text-gray-700"
-              onClick={closeUpdateModal}
+   
+{/* Update Inquiry Modal */}
+{showUpdateModal && selectedInquiry && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div className="bg-white p-6 rounded-lg w-full max-w-5xl shadow-lg overflow-y-auto max-h-[90vh] relative">
+      <button
+        className="absolute top-2 right-4 text-gray-500 hover:text-gray-700"
+        onClick={closeUpdateModal}
+      >
+        ✕
+      </button>
+      <h3 className="text-xl font-semibold mb-4">
+        Update Inquiry: {selectedInquiry.inquiryId}
+      </h3>
+
+      <div className="mb-4 text-gray-700">
+        <p>
+          <strong>Customer:</strong>{" "}
+          {selectedInquiry.customerId?.companyName}
+        </p>
+        <p>
+          <strong>Expected Delivery:</strong>{" "}
+          {new Date(
+            selectedInquiry.expectedDelivery
+          ).toLocaleDateString()}
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {suppliers.map((supplier) => {
+          const supplierInquiry = supplier.inquirySent?.find(
+            (s) => s.inquiryId === selectedInquiry.inquiryId
+          );
+          
+          if (!supplierInquiry) return null;
+
+          // Get the products that were sent to this supplier
+          const supplierProducts = selectedInquiry.products.filter(product => 
+            supplierInquiry.productIds.includes(product.productId)
+          );
+
+          if (supplierProducts.length === 0) return null;
+
+          return (
+            <div
+              key={supplier._id}
+              className="border p-4 rounded-md bg-gray-50"
             >
-              ✕
-            </button>
-            <h3 className="text-xl font-semibold mb-4">
-              Update Inquiry: {selectedInquiry.inquiryId}
-            </h3>
-
-            <div className="mb-4 text-gray-700">
-              <p>
-                <strong>Customer:</strong>{" "}
-                {selectedInquiry.customerId?.companyName}
-              </p>
-              <p>
-                <strong>Expected Delivery:</strong>{" "}
-                {new Date(
-                  selectedInquiry.expectedDelivery
-                ).toLocaleDateString()}
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              {suppliers.map((supplier) => {
-                const wasSent = supplier.inquirySent && supplier.inquirySent.some(
-                  (s) => s.inquiryId === selectedInquiry.inquiryId
-                );
-                if (!wasSent) return null;
-
-                return (
-                  <div
-                    key={supplier._id}
-                    className="border p-4 rounded-md bg-gray-50"
-                  >
-                    <h4 className="text-lg font-semibold mb-3 text-gray-800">
-                      {supplier.companyName} ({supplier.supplierName})
-                    </h4>
-                    
-                    {selectedInquiry.products.map((product, idx) => (
-                      <div key={idx} className="mb-4 p-3 bg-white rounded border">
-                        <p className="font-medium mb-2">
-                          <strong>Product:</strong> {product.name}
-                        </p>
-                        <p className="text-sm text-gray-600 mb-3">
-                          <strong>Brand:</strong> {product.brand} | 
-                          <strong> Quantity:</strong> {product.quantity} {product.uom}
-                        </p>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Price
-                            </label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="Enter price"
-                              className="w-full border border-gray-300 rounded-md px-3 py-2"
-                              value={getExistingQuoteValue(supplier._id, product.productId, 'price')}
-                              onChange={(e) =>
-                                handleQuoteInputChange(
-                                  supplier._id,
-                                  product.productId,
-                                  "price",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Availability
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="e.g., In Stock, 3-5 days"
-                              className="w-full border border-gray-300 rounded-md px-3 py-2"
-                              value={getExistingQuoteValue(supplier._id, product.productId, 'availability')}
-                              onChange={(e) =>
-                                handleQuoteInputChange(
-                                  supplier._id,
-                                  product.productId,
-                                  "availability",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Expected Delivery
-                            </label>
-                            <input
-                              type="date"
-                              className="w-full border border-gray-300 rounded-md px-3 py-2"
-                              value={getExistingQuoteValue(supplier._id, product.productId, 'expectedDelivery')}
-                              onChange={(e) =>
-                                handleQuoteInputChange(
-                                  supplier._id,
-                                  product.productId,
-                                  "expectedDelivery",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+              <h4 className="text-lg font-semibold mb-3 text-gray-800">
+                {supplier.companyName} ({supplier.supplierName})
+              </h4>
+              
+              {supplierProducts.map((product, idx) => (
+                <div key={idx} className="mb-4 p-3 bg-white rounded border">
+                  <p className="font-medium mb-2">
+                    <strong>Product:</strong> {product.name}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-3">
+                    <strong>Brand:</strong> {product.brand} | 
+                    <strong> Quantity:</strong> {product.quantity} {product.uom}
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Price
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Enter price"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        value={getExistingQuoteValue(supplier._id, product.productId, 'price')}
+                        onChange={(e) =>
+                          handleQuoteInputChange(
+                            supplier._id,
+                            product.productId,
+                            "price",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Availability
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., In Stock, 3-5 days"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        value={getExistingQuoteValue(supplier._id, product.productId, 'availability')}
+                        onChange={(e) =>
+                          handleQuoteInputChange(
+                            supplier._id,
+                            product.productId,
+                            "availability",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Expected Delivery
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        value={getExistingQuoteValue(supplier._id, product.productId, 'expectedDelivery')}
+                        onChange={(e) =>
+                          handleQuoteInputChange(
+                            supplier._id,
+                            product.productId,
+                            "expectedDelivery",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
+          );
+        })}
+      </div>
 
-            <div className="flex justify-end gap-4 mt-6">
-              <button
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-                onClick={submitQuoteUpdates}
-                disabled={isUpdating}
-              >
-                {isUpdating ? "Updating..." : "Update Quotes"}
-              </button>
-              <button
-                className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
-                onClick={finalizeInquiry}
-                disabled={isUpdating}
-              >
-                {isUpdating ? "Finalizing..." : "Finalize Inquiry"}
-              </button>
-              <button
-                className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
-                onClick={closeUpdateModal}
-                disabled={isUpdating}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="flex justify-end gap-4 mt-6">
+        <button
+          className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+          onClick={submitQuoteUpdates}
+          disabled={isUpdating}
+        >
+          {isUpdating ? "Updating..." : "Update Quotes"}
+        </button>
+        <button
+          className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
+          onClick={finalizeInquiry}
+          disabled={isUpdating}
+        >
+          {isUpdating ? "Finalizing..." : "Finalize Inquiry"}
+        </button>
+        <button
+          className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
+          onClick={closeUpdateModal}
+          disabled={isUpdating}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
