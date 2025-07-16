@@ -6,52 +6,56 @@ const SendQuotesPage = () => {
   const [inquiries, setInquiries] = useState([]);
   const [marginMap, setMarginMap] = useState({});
   const [deliveryCharges, setDeliveryCharges] = useState({});
-  const [gstRates, setGstRates] = useState({}); // Changed to per-product GST rates
+  const [gstRates, setGstRates] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedInquiry, setSelectedInquiry] = useState(null);
+  const [emailForm, setEmailForm] = useState({
+    toEmails: "",
+    ccEmails: "",
+    subject: "",
+    message: "",
+  });
 
   useEffect(() => {
     const fetchInquiries = async () => {
       try {
         setLoading(true);
-        
-        // Get token from localStorage (adjust this based on how you store your auth token)
-        const token = localStorage.getItem('token');
-        
-        const response = await fetch(
-          `${API_BASE_URL}/api/completedquote`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(`${API_BASE_URL}/api/completedquote`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
-        console.log('Fetched inquiries:', data);
+        console.log("Fetched inquiries:", data);
         setInquiries(data);
-        
-        // Initialize GST rates with default 0% for each product
+
+        // Initialize GST rates with default 18% for each product
         const initialGstRates = {};
-        data.forEach(inquiry => {
-          inquiry.products?.forEach(product => {
+        data.forEach((inquiry) => {
+          inquiry.products?.forEach((product) => {
             initialGstRates[inquiry._id + product.productId] = 0;
           });
         });
         setGstRates(initialGstRates);
-        
+
         setError(null);
       } catch (err) {
         console.error("Error loading inquiries:", err);
         setError(err.message);
-        
-        // If it's a 404, the route doesn't exist
-        if (err.message.includes('404')) {
-          setError("The completed inquiries endpoint is not available. Please check your backend routes.");
+
+        if (err.message.includes("404")) {
+          setError(
+            "The completed inquiries endpoint is not available. Please check your backend routes."
+          );
         }
       } finally {
         setLoading(false);
@@ -62,55 +66,154 @@ const SendQuotesPage = () => {
   }, []);
 
   const handleMarginChange = (inquiryId, productId, margin) => {
-    setMarginMap(prev => ({
+    setMarginMap((prev) => ({
       ...prev,
-      [inquiryId + productId]: margin
+      [inquiryId + productId]: parseFloat(margin) || 0,
     }));
   };
 
   const handleDeliveryChargeChange = (inquiryId, charges) => {
-    setDeliveryCharges(prev => ({
+    setDeliveryCharges((prev) => ({
       ...prev,
-      [inquiryId]: charges
+      [inquiryId]: parseFloat(charges) || 0,
     }));
   };
 
   const handleGstRateChange = (inquiryId, productId, rate) => {
-    setGstRates(prev => ({
+    setGstRates((prev) => ({
       ...prev,
-      [inquiryId + productId]: parseFloat(rate) || 0
+      [inquiryId + productId]: parseFloat(rate) || 0,
     }));
   };
 
   const calculatePrice = (basePrice, margin) => {
-    return basePrice + (basePrice * (margin || 0) / 100);
+    const base = parseFloat(basePrice) || 0;
+    const marginPercent = parseFloat(margin) || 0;
+    return base + (base * marginPercent) / 100;
   };
 
   const calculateTotals = (inquiry) => {
     let subtotal = 0;
     let totalGstAmount = 0;
 
-    inquiry.products?.forEach(product => {
-      const quote = inquiry.supplierQuotes?.flatMap(s => s.quotes)?.find(q => q.productId === product.productId?.toString());
-      const base = quote?.price || 0;
-      const margin = parseFloat(marginMap[inquiry._id + product.productId] || 0);
+    inquiry.products?.forEach((product) => {
+      const quote = inquiry.supplierQuotes
+        ?.flatMap((s) => s.quotes)
+        ?.find((q) => q.productId === product.productId?.toString());
+      const base = parseFloat(quote?.price) || 0;
+      const margin =
+        parseFloat(marginMap[inquiry._id + product.productId]) || 0;
       const finalPrice = calculatePrice(base, margin);
-      const gstRate = gstRates[inquiry._id + product.productId] || 0;
+      const gstRate =
+        parseFloat(gstRates[inquiry._id + product.productId]) || 0;
       const gstAmount = finalPrice * (gstRate / 100);
-      
+
       subtotal += finalPrice;
       totalGstAmount += gstAmount;
     });
 
-    const delivery = parseFloat(deliveryCharges[inquiry._id] || 0);
+    const delivery = parseFloat(deliveryCharges[inquiry._id]) || 0;
     const total = subtotal + delivery + totalGstAmount;
 
-    return { subtotal, delivery, gstAmount: totalGstAmount, total };
+    return {
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      delivery: parseFloat(delivery.toFixed(2)),
+      gstAmount: parseFloat(totalGstAmount.toFixed(2)),
+      total: parseFloat(total.toFixed(2)),
+    };
   };
 
-  const sendResponse = (inquiry) => {
-    // You can replace with actual email/send logic
-    alert(`Sending response for Inquiry ID: ${inquiry.inquiryId}`);
+  const openEmailModal = (inquiry) => {
+    setSelectedInquiry(inquiry);
+    setEmailForm({
+      toEmails: inquiry.customer?.email || "",
+      ccEmails: "",
+      subject: `Quotation for Inquiry ID: ${inquiry.inquiryId}`,
+      message: `Dear ${
+        inquiry.customer?.companyName || "Valued Customer"
+      },\n\nPlease find the attached quotation for your inquiry.\n\nRegards,\nCRM Team`,
+    });
+    setShowModal(true);
+  };
+
+  const sendResponse = async () => {
+    if (!selectedInquiry) return;
+
+    const { toEmails, ccEmails } = emailForm;
+
+    if (!toEmails.trim()) {
+      alert("Recipient email is required!");
+      return;
+    }
+
+  const quoteData = selectedInquiry.products.map((product) => {
+  const productId = product.productId;
+  const quote = selectedInquiry.supplierQuotes
+    ?.flatMap((s) => s.quotes)
+    ?.find((q) => q.productId === productId?.toString());
+
+  const basePrice = parseFloat(quote?.price) || 0;
+  const margin = parseFloat(marginMap[selectedInquiry._id + productId]) || 0;
+  const gstRate = parseFloat(gstRates[selectedInquiry._id + productId]) || 0;
+  const priceAfterMargin = calculatePrice(basePrice, margin);
+  const gstAmount = priceAfterMargin * (gstRate / 100);
+  const finalPrice = priceAfterMargin + gstAmount;
+
+  return {
+  name: product.name,
+  brand: product.brand,
+  quantity: product.quantity,
+  margin: parseFloat(margin.toFixed(2)),
+  gstRate: parseFloat(gstRate.toFixed(2)),
+  finalPrice: parseFloat(finalPrice.toFixed(2)),
+};
+
+});
+
+
+    const deliveryChargeAmount =
+      parseFloat(deliveryCharges[selectedInquiry._id]) || 0;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/sendQuoteResponse`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          toEmails: toEmails
+            .split(",")
+            .map((e) => e.trim())
+            .filter((e) => e),
+          ccEmails: ccEmails
+            ? ccEmails
+                .split(",")
+                .map((e) => e.trim())
+                .filter((e) => e)
+            : [],
+          companyName: selectedInquiry.customer?.companyName || "Customer",
+          inquiryId: selectedInquiry.inquiryId,
+          quoteData,
+          deliveryCharges: deliveryChargeAmount,
+          subject: emailForm.subject,
+          message: emailForm.message,
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert("Quote sent successfully!");
+        setShowModal(false);
+        setSelectedInquiry(null);
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (err) {
+      console.error("Error sending response:", err);
+      alert("Failed to send response.");
+    }
   };
 
   if (loading) {
@@ -119,7 +222,9 @@ const SendQuotesPage = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Send Quotations</h1>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              Send Quotations
+            </h1>
             <p className="text-gray-600">Loading inquiries...</p>
           </div>
         </div>
@@ -132,9 +237,13 @@ const SendQuotesPage = () => {
       <div className="p-6">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white border rounded-lg p-6">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">Send Quotations</h1>
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">
+              Send Quotations
+            </h1>
             <div className="bg-red-50 border border-red-200 rounded p-4">
-              <p className="text-red-700"><strong>Error:</strong> {error}</p>
+              <p className="text-red-700">
+                <strong>Error:</strong> {error}
+              </p>
             </div>
           </div>
         </div>
@@ -147,7 +256,9 @@ const SendQuotesPage = () => {
       <div className="p-6">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white border rounded-lg p-6">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">Send Quotations</h1>
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">
+              Send Quotations
+            </h1>
             <div className="text-center py-8">
               <p className="text-gray-500">No completed inquiries found.</p>
             </div>
@@ -161,25 +272,36 @@ const SendQuotesPage = () => {
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Send Quotations</h1>
-          <p className="text-gray-600">Review and send quotations to customers</p>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            Send Quotations
+          </h1>
+          <p className="text-gray-600">
+            Review and send quotations to customers
+          </p>
         </div>
 
         <div className="space-y-6">
-          {inquiries.map(inquiry => {
-            const { subtotal, delivery, gstAmount, total } = calculateTotals(inquiry);
-            
+          {inquiries.map((inquiry) => {
+            const { subtotal, delivery, gstAmount, total } =
+              calculateTotals(inquiry);
+
             return (
               <div key={inquiry._id} className="bg-white border rounded-lg">
                 {/* Header */}
                 <div className="bg-blue-600 text-white p-4 rounded-t-lg">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-xl font-bold">Inquiry #{inquiry.inquiryId}</h2>
-                      <p className="text-blue-100">{inquiry.customer?.companyName || "N/A"}</p>
+                      <h2 className="text-xl font-bold">
+                        Inquiry #{inquiry.inquiryId}
+                      </h2>
+                      <p className="text-blue-100">
+                        {inquiry.customer?.companyName || "N/A"}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm">Products: {inquiry.products?.length || 0}</p>
+                      <p className="text-sm">
+                        Products: {inquiry.products?.length || 0}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -190,33 +312,80 @@ const SendQuotesPage = () => {
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="bg-gray-50">
-                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Product</th>
-                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Brand</th>
-                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Specifications</th>
-                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Qty</th>
-                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Delivery</th>
-                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Base Price</th>
-                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Margin %</th>
-                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">GST %</th>
-                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Final Price</th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            Product
+                          </th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            Brand
+                          </th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            Specifications
+                          </th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            Qty
+                          </th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            Delivery
+                          </th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            Base Price
+                          </th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            Margin %
+                          </th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            GST %
+                          </th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            Final Price
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {inquiry.products?.map((product, index) => {
-                          const supplierQuote = inquiry.supplierQuotes?.flatMap(s => s.quotes)?.find(q => q.productId === product.productId?.toString());
-                          const basePrice = supplierQuote?.price || 0;
-                          const expectedDelivery = supplierQuote?.expectedDelivery || inquiry.expectedDelivery;
-                          const margin = parseFloat(marginMap[inquiry._id + product.productId] || 0);
-                          const gstRate = gstRates[inquiry._id + product.productId] || 0;
-                          const priceAfterMargin = calculatePrice(basePrice, margin);
+                          const supplierQuote = inquiry.supplierQuotes
+                            ?.flatMap((s) => s.quotes)
+                            ?.find(
+                              (q) =>
+                                q.productId === product.productId?.toString()
+                            );
+                          const basePrice =
+                            parseFloat(supplierQuote?.price) || 0;
+                          const expectedDelivery =
+                            supplierQuote?.expectedDelivery ||
+                            inquiry.expectedDelivery;
+                          const margin =
+                            parseFloat(
+                              marginMap[inquiry._id + product.productId]
+                            ) || 0;
+                          const gstRate =
+                            parseFloat(
+                              gstRates[inquiry._id + product.productId]
+                            ) || 0;
+                          const priceAfterMargin = calculatePrice(
+                            basePrice,
+                            margin
+                          );
                           const gstAmount = priceAfterMargin * (gstRate / 100);
                           const finalPrice = priceAfterMargin + gstAmount;
 
                           return (
-                            <tr key={product.productId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-300 px-3 py-2 text-sm">{product.name}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-sm">{product.brand}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-sm max-w-xs truncate" title={product.specifications}>
+                            <tr
+                              key={product.productId}
+                              className={
+                                index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                              }
+                            >
+                              <td className="border border-gray-300 px-3 py-2 text-sm">
+                                {product.name}
+                              </td>
+                              <td className="border border-gray-300 px-3 py-2 text-sm">
+                                {product.brand}
+                              </td>
+                              <td
+                                className="border border-gray-300 px-3 py-2 text-sm max-w-xs truncate"
+                                title={product.specifications}
+                              >
                                 {product.specifications}
                               </td>
                               <td className="border border-gray-300 px-3 py-2 text-sm">
@@ -225,19 +394,35 @@ const SendQuotesPage = () => {
                                 </span>
                               </td>
                               <td className="border border-gray-300 px-3 py-2 text-sm">
-                                {expectedDelivery ? new Date(expectedDelivery).toLocaleDateString() : 'N/A'}
+                                {expectedDelivery
+                                  ? new Date(
+                                      expectedDelivery
+                                    ).toLocaleDateString()
+                                  : "N/A"}
                               </td>
-                              <td className="border border-gray-300 px-3 py-2 text-sm font-medium">₹{basePrice.toFixed(2)}</td>
+                              <td className="border border-gray-300 px-3 py-2 text-sm font-medium">
+                                ₹{basePrice.toFixed(2)}
+                              </td>
                               <td className="border border-gray-300 px-3 py-2">
                                 <div className="flex items-center">
                                   <input
                                     type="number"
                                     className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                                     value={margin}
-                                    onChange={e => handleMarginChange(inquiry._id, product.productId, e.target.value)}
+                                    onChange={(e) =>
+                                      handleMarginChange(
+                                        inquiry._id,
+                                        product.productId,
+                                        e.target.value
+                                      )
+                                    }
                                     placeholder="0"
+                                    min="0"
+                                    step="0.1"
                                   />
-                                  <span className="ml-1 text-sm text-gray-500">%</span>
+                                  <span className="ml-1 text-sm text-gray-500">
+                                    %
+                                  </span>
                                 </div>
                               </td>
                               <td className="border border-gray-300 px-3 py-2">
@@ -246,16 +431,26 @@ const SendQuotesPage = () => {
                                     type="number"
                                     className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                                     value={gstRate}
-                                    onChange={e => handleGstRateChange(inquiry._id, product.productId, e.target.value)}
-                                    placeholder="18"
+                                    onChange={(e) =>
+                                      handleGstRateChange(
+                                        inquiry._id,
+                                        product.productId,
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="0"
                                     min="0"
                                     max="100"
                                     step="0.1"
                                   />
-                                  <span className="ml-1 text-sm text-gray-500">%</span>
+                                  <span className="ml-1 text-sm text-gray-500">
+                                    %
+                                  </span>
                                 </div>
                               </td>
-                              <td className="border border-gray-300 px-3 py-2 text-sm font-bold text-green-600">₹{finalPrice.toFixed(2)}</td>
+                              <td className="border border-gray-300 px-3 py-2 text-sm font-bold text-green-600">
+                                ₹{finalPrice.toFixed(2)}
+                              </td>
                             </tr>
                           );
                         })}
@@ -268,13 +463,20 @@ const SendQuotesPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Delivery Charges Input */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Charges</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Delivery Charges
+                        </label>
                         <div className="flex items-center">
                           <span className="text-sm text-gray-500 mr-2">₹</span>
                           <input
                             type="number"
-                            value={deliveryCharges[inquiry._id] || ''}
-                            onChange={(e) => handleDeliveryChargeChange(inquiry._id, e.target.value)}
+                            value={deliveryCharges[inquiry._id] || ""}
+                            onChange={(e) =>
+                              handleDeliveryChargeChange(
+                                inquiry._id,
+                                e.target.value
+                              )
+                            }
                             className="w-32 px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                             placeholder="0.00"
                             min="0"
@@ -311,7 +513,7 @@ const SendQuotesPage = () => {
                     {/* Send Button */}
                     <div className="mt-4 text-right">
                       <button
-                        onClick={() => sendResponse(inquiry)}
+                        onClick={() => openEmailModal(inquiry)}
                         className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         Send Response to Company
@@ -324,6 +526,93 @@ const SendQuotesPage = () => {
           })}
         </div>
       </div>
+
+      {/* Email Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h2 className="text-xl font-bold mb-4">Send Quotation Email</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  To (Email addresses)
+                </label>
+                <input
+                  type="email"
+                  value={emailForm.toEmails}
+                  onChange={(e) =>
+                    setEmailForm({ ...emailForm, toEmails: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="customer@company.com, another@company.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  CC (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={emailForm.ccEmails}
+                  onChange={(e) =>
+                    setEmailForm({ ...emailForm, ccEmails: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="manager@yourcompany.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={emailForm.subject}
+                  onChange={(e) =>
+                    setEmailForm({ ...emailForm, subject: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Message
+                </label>
+                <textarea
+                  value={emailForm.message}
+                  onChange={(e) =>
+                    setEmailForm({ ...emailForm, message: e.target.value })
+                  }
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendResponse}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Send Email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

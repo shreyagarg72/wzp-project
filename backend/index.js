@@ -4,7 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 dotenv.config();
 import nodemailer from 'nodemailer';
-
+import sendCompanyResponse from './routes/sendCompanyResponse.js';
 import authRoutes from './routes/auth.js'; // ✅ import auth route
 import customerRoutes from './routes/customerRoutes.js'; // ✅ import auth route
 import inquiryRoutes from './routes/inquiryRoutes.js';
@@ -34,6 +34,7 @@ app.use('/api/completedquote',sendQuoteRoute)
 app.use('/api/send-inquiry-mails',sendInquiryEmail);
 app.use('/api/activitylogs',activityLogRoute);
 app.use('/api/products',productOverviewRoute);
+app.use('/api/sendQuoteResponse',sendCompanyResponse);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
