@@ -1,19 +1,23 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function LoginPage() {
-  const [form, setForm] = useState({ username: '', password: '', isAdmin: false });
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+    isAdmin: false,
+  });
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const res = await fetch('http://localhost:5000/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: form.username,
           password: form.password,
@@ -24,17 +28,15 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success('Login successful!');
-  localStorage.setItem('token', data.token);
-  navigate('/dashboard'); // <-- should work
-      
-
+        toast.success("Login successful!");
+        localStorage.setItem("token", data.token);
+        navigate("/dashboard"); // <-- should work
       } else {
-        toast.error(data.message || 'Login failed');
+        toast.error(data.message || "Login failed");
       }
     } catch (error) {
       console.error(error);
-      toast.error('Something went wrong');
+      toast.error("Something went wrong");
     }
   };
 
@@ -47,7 +49,9 @@ export default function LoginPage() {
           className="max-w-96 w-full text-center border border-gray-300/60 rounded-2xl px-8 bg-white"
         >
           <h1 className="text-gray-900 text-3xl mt-10 font-medium">Login</h1>
-          <p className="text-gray-500 text-sm mt-2">Please sign in to continue</p>
+          <p className="text-gray-500 text-sm mt-2">
+            Please sign in to continue
+          </p>
 
           {/* Username Input */}
           <div className="flex items-center w-full mt-10 bg-white border border-gray-300/80 h-12 rounded-full overflow-hidden pl-6 gap-2">
@@ -79,7 +83,9 @@ export default function LoginPage() {
               <input
                 type="checkbox"
                 checked={form.isAdmin}
-                onChange={(e) => setForm({ ...form, isAdmin: e.target.checked })}
+                onChange={(e) =>
+                  setForm({ ...form, isAdmin: e.target.checked })
+                }
                 className="accent-indigo-500"
               />
               Are you an admin?

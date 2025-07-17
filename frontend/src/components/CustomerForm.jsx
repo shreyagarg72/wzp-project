@@ -1,13 +1,13 @@
 import React from "react";
 
-const CustomerForm = ({ 
-  form, 
-  setForm, 
-  showForm, 
-  submitting, 
-  error, 
-  handleSubmit, 
-  closeForm 
+const CustomerForm = ({
+  form,
+  setForm,
+  showForm,
+  submitting,
+  error,
+  handleSubmit,
+  closeForm,
 }) => {
   const formatFieldName = (key) => {
     return (

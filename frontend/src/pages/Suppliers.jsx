@@ -30,7 +30,7 @@ export default function Suppliers() {
     { value: "", label: "Select Availability" },
     { value: "In Stock", label: "In Stock" },
     { value: "Yes", label: "Yes" },
-    { value: "No", label: "No" }
+    { value: "No", label: "No" },
   ];
 
   const handleQuoteInputChange = (supplierId, productId, field, value) => {
@@ -40,28 +40,38 @@ export default function Suppliers() {
         ...prev[supplierId],
         [productId]: {
           ...((prev[supplierId] && prev[supplierId][productId]) || {}),
-          [field]: value
-        }
-      }
+          [field]: value,
+        },
+      },
     }));
   };
 
   const getExistingQuoteValue = (supplierId, productId, field) => {
     // Check if there's an update in progress
-    if (quoteUpdates[supplierId] && quoteUpdates[supplierId][productId] && quoteUpdates[supplierId][productId][field] !== undefined) {
+    if (
+      quoteUpdates[supplierId] &&
+      quoteUpdates[supplierId][productId] &&
+      quoteUpdates[supplierId][productId][field] !== undefined
+    ) {
       return quoteUpdates[supplierId][productId][field];
     }
-    
+
     // Check existing quotes in the inquiry
-    const supplierQuote = selectedInquiry?.supplierQuotes?.find(sq => sq.supplierId.toString() === supplierId);
+    const supplierQuote = selectedInquiry?.supplierQuotes?.find(
+      (sq) => sq.supplierId.toString() === supplierId
+    );
     if (supplierQuote) {
-      const productQuote = supplierQuote.quotes.find(q => q.productId === productId);
+      const productQuote = supplierQuote.quotes.find(
+        (q) => q.productId === productId
+      );
       if (productQuote && productQuote[field] !== undefined) {
-        return field === 'expectedDelivery' ? productQuote[field].split('T')[0] : productQuote[field];
+        return field === "expectedDelivery"
+          ? productQuote[field].split("T")[0]
+          : productQuote[field];
       }
     }
-    
-    return '';
+
+    return "";
   };
 
   const submitQuoteUpdates = async () => {
@@ -77,16 +87,24 @@ export default function Suppliers() {
       for (const [supplierId, productMap] of Object.entries(quoteUpdates)) {
         const quotes = Object.entries(productMap).map(([productId, fields]) => {
           // Get existing quote data for this supplier and product
-          const existingQuote = selectedInquiry.supplierQuotes
-            ?.find(sq => sq.supplierId.toString() === supplierId)
-            ?.quotes?.find(q => q.productId === productId) || {};
-          
+          const existingQuote =
+            selectedInquiry.supplierQuotes
+              ?.find((sq) => sq.supplierId.toString() === supplierId)
+              ?.quotes?.find((q) => q.productId === productId) || {};
+
           // Merge existing data with new updates
           return {
             productId,
-            price: fields.price !== undefined ? fields.price : existingQuote.price,
-            availability: fields.availability !== undefined ? fields.availability : existingQuote.availability,
-            expectedDelivery: fields.expectedDelivery !== undefined ? fields.expectedDelivery : existingQuote.expectedDelivery,
+            price:
+              fields.price !== undefined ? fields.price : existingQuote.price,
+            availability:
+              fields.availability !== undefined
+                ? fields.availability
+                : existingQuote.availability,
+            expectedDelivery:
+              fields.expectedDelivery !== undefined
+                ? fields.expectedDelivery
+                : existingQuote.expectedDelivery,
           };
         });
 
@@ -105,18 +123,19 @@ export default function Suppliers() {
       }
 
       alert("Quotes updated successfully");
-      
+
       // Clear the updates and refresh data
       setQuoteUpdates({});
       await fetchInquiries();
-      
+
       // Refresh the selected inquiry with updated data
       const updatedInquiries = await axios.get(`${API_BASE_URL}/api/inquiries`);
-      const updatedInquiry = updatedInquiries.data.find(inq => inq.inquiryId === selectedInquiry.inquiryId);
+      const updatedInquiry = updatedInquiries.data.find(
+        (inq) => inq.inquiryId === selectedInquiry.inquiryId
+      );
       if (updatedInquiry) {
         setSelectedInquiry(updatedInquiry);
       }
-      
     } catch (err) {
       console.error("Error updating quotes:", err);
       alert("Failed to update quotes");
@@ -166,16 +185,24 @@ export default function Suppliers() {
     for (const [supplierId, productMap] of Object.entries(quoteUpdates)) {
       const quotes = Object.entries(productMap).map(([productId, fields]) => {
         // Get existing quote data for this supplier and product
-        const existingQuote = selectedInquiry.supplierQuotes
-          ?.find(sq => sq.supplierId.toString() === supplierId)
-          ?.quotes?.find(q => q.productId === productId) || {};
-        
+        const existingQuote =
+          selectedInquiry.supplierQuotes
+            ?.find((sq) => sq.supplierId.toString() === supplierId)
+            ?.quotes?.find((q) => q.productId === productId) || {};
+
         // Merge existing data with new updates
         return {
           productId,
-          price: fields.price !== undefined ? fields.price : existingQuote.price,
-          availability: fields.availability !== undefined ? fields.availability : existingQuote.availability,
-          expectedDelivery: fields.expectedDelivery !== undefined ? fields.expectedDelivery : existingQuote.expectedDelivery,
+          price:
+            fields.price !== undefined ? fields.price : existingQuote.price,
+          availability:
+            fields.availability !== undefined
+              ? fields.availability
+              : existingQuote.availability,
+          expectedDelivery:
+            fields.expectedDelivery !== undefined
+              ? fields.expectedDelivery
+              : existingQuote.expectedDelivery,
         };
       });
 
@@ -198,14 +225,16 @@ export default function Suppliers() {
     // Fetch fresh inquiry data before opening modal
     try {
       const response = await axios.get(`${API_BASE_URL}/api/inquiries`);
-      const freshInquiry = response.data.find(inq => inq.inquiryId === inquiry.inquiryId);
-      
+      const freshInquiry = response.data.find(
+        (inq) => inq.inquiryId === inquiry.inquiryId
+      );
+
       if (freshInquiry) {
         setSelectedInquiry(freshInquiry);
       } else {
         setSelectedInquiry(inquiry);
       }
-      
+
       setQuoteUpdates({});
       setShowUpdateModal(true);
     } catch (err) {
@@ -305,7 +334,11 @@ export default function Suppliers() {
 
   const closeUpdateModal = () => {
     if (Object.keys(quoteUpdates).length > 0) {
-      if (window.confirm("You have unsaved changes. Are you sure you want to close?")) {
+      if (
+        window.confirm(
+          "You have unsaved changes. Are you sure you want to close?"
+        )
+      ) {
         setQuoteUpdates({});
         setShowUpdateModal(false);
       }
@@ -592,12 +625,14 @@ export default function Suppliers() {
               <button
                 onClick={async () => {
                   // Check if any suppliers are selected
-                  const hasSelectedSuppliers = Object.values(productSupplierMap).some(
-                    suppliers => suppliers.length > 0
-                  );
-                  
+                  const hasSelectedSuppliers = Object.values(
+                    productSupplierMap
+                  ).some((suppliers) => suppliers.length > 0);
+
                   if (!hasSelectedSuppliers) {
-                    alert("Please select at least one supplier for the products.");
+                    alert(
+                      "Please select at least one supplier for the products."
+                    );
                     return;
                   }
 
@@ -605,7 +640,7 @@ export default function Suppliers() {
                   const confirmed = window.confirm(
                     "Are you sure you want to send inquiry emails to the selected suppliers?"
                   );
-                  
+
                   if (!confirmed) {
                     return;
                   }
@@ -652,9 +687,9 @@ export default function Suppliers() {
                   }
                 }}
                 className={`px-6 py-2 rounded-md text-white ${
-                  isSendingMail 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-green-600 hover:bg-green-700'
+                  isSendingMail
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700"
                 }`}
                 disabled={isSendingMail}
               >
@@ -697,12 +732,13 @@ export default function Suppliers() {
                 const supplierInquiry = supplier.inquirySent?.find(
                   (s) => s.inquiryId === selectedInquiry.inquiryId
                 );
-                
+
                 if (!supplierInquiry) return null;
 
                 // Get the products that were sent to this supplier
-                const supplierProducts = selectedInquiry.products.filter(product => 
-                  supplierInquiry.productIds.includes(product.productId)
+                const supplierProducts = selectedInquiry.products.filter(
+                  (product) =>
+                    supplierInquiry.productIds.includes(product.productId)
                 );
 
                 if (supplierProducts.length === 0) return null;
@@ -715,17 +751,21 @@ export default function Suppliers() {
                     <h4 className="text-lg font-semibold mb-3 text-gray-800">
                       {supplier.companyName} ({supplier.supplierName})
                     </h4>
-                    
+
                     {supplierProducts.map((product, idx) => (
-                      <div key={idx} className="mb-4 p-3 bg-white rounded border">
+                      <div
+                        key={idx}
+                        className="mb-4 p-3 bg-white rounded border"
+                      >
                         <p className="font-medium mb-2">
                           <strong>Product:</strong> {product.name}
                         </p>
                         <p className="text-sm text-gray-600 mb-3">
-                          <strong>Brand:</strong> {product.brand} | 
-                          <strong> Quantity:</strong> {product.quantity} {product.uom}
+                          <strong>Brand:</strong> {product.brand} |
+                          <strong> Quantity:</strong> {product.quantity}{" "}
+                          {product.uom}
                         </p>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -736,7 +776,11 @@ export default function Suppliers() {
                               step="0.01"
                               placeholder="Enter price"
                               className="w-full border border-gray-300 rounded-md px-3 py-2"
-                              value={getExistingQuoteValue(supplier._id, product.productId, 'price')}
+                              value={getExistingQuoteValue(
+                                supplier._id,
+                                product.productId,
+                                "price"
+                              )}
                               onChange={(e) =>
                                 handleQuoteInputChange(
                                   supplier._id,
@@ -753,7 +797,11 @@ export default function Suppliers() {
                             </label>
                             <select
                               className="w-full border border-gray-300 rounded-md px-3 py-2"
-                              value={getExistingQuoteValue(supplier._id, product.productId, 'availability')}
+                              value={getExistingQuoteValue(
+                                supplier._id,
+                                product.productId,
+                                "availability"
+                              )}
                               onChange={(e) =>
                                 handleQuoteInputChange(
                                   supplier._id,
@@ -777,7 +825,11 @@ export default function Suppliers() {
                             <input
                               type="date"
                               className="w-full border border-gray-300 rounded-md px-3 py-2"
-                              value={getExistingQuoteValue(supplier._id, product.productId, 'expectedDelivery')}
+                              value={getExistingQuoteValue(
+                                supplier._id,
+                                product.productId,
+                                "expectedDelivery"
+                              )}
                               onChange={(e) =>
                                 handleQuoteInputChange(
                                   supplier._id,

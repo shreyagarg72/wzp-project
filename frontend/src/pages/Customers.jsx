@@ -123,49 +123,52 @@ export default function Customer() {
       }
 
       // Validate products
-      const validProducts = productLines.filter(p => p.productName.trim());
+      const validProducts = productLines.filter((p) => p.productName.trim());
       if (validProducts.length === 0) {
         setInquiryError("At least one product with a name is required");
         return;
       }
 
       // Validate quantities
-      const invalidQuantities = validProducts.filter(p => !p.quantity || p.quantity <= 0);
+      const invalidQuantities = validProducts.filter(
+        (p) => !p.quantity || p.quantity <= 0
+      );
       if (invalidQuantities.length > 0) {
         setInquiryError("All products must have a quantity greater than 0");
         return;
       }
 
       const payload = {
-        inquiryId: `INQ-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        inquiryId: `INQ-${Date.now()}-${Math.floor(
+          1000 + Math.random() * 9000
+        )}`,
         customerId: selectedCustomer._id,
         expectedDelivery: expectedDelivery || null,
         products: validProducts.map((p) => ({
           name: p.productName.trim(),
-          brand: (p.brand || '').trim(),
+          brand: (p.brand || "").trim(),
           quantity: Number(p.quantity),
-          category: (p.category || '').trim(),
-          description: (p.description || '').trim(),
-          specifications: (p.specifications || '').trim(),
-          uom: (p.uom || '').trim()
-        }))
+          category: (p.category || "").trim(),
+          description: (p.description || "").trim(),
+          specifications: (p.specifications || "").trim(),
+          uom: (p.uom || "").trim(),
+        })),
       };
 
       console.log("Submitting Inquiry:", payload);
-      
+
       const response = await customerService.submitInquiry(payload);
-      
+
       console.log("Inquiry submitted successfully:", response);
-      
+
       // Show success message
       alert(`Inquiry submitted successfully! Inquiry ID: ${payload.inquiryId}`);
-      
+
       // Reset form and close modal
       setProductLines([{ productName: "", brand: "", quantity: 1 }]);
       setExpectedDelivery("");
       setInquiryModalOpen(false);
       setSelectedCustomer(null);
-
     } catch (err) {
       setInquiryError(err.message);
     } finally {

@@ -12,7 +12,7 @@ const InquiryModal = ({
   removeProductLine,
   inquirySubmitting,
   handleInquirySubmit,
-  closeInquiryModal
+  closeInquiryModal,
 }) => {
   if (!inquiryModalOpen || !selectedCustomer) return null;
 
@@ -28,7 +28,8 @@ const InquiryModal = ({
         </button>
 
         <h2 className="text-xl font-semibold mb-4 text-gray-800">
-          Raise Inquiry for {selectedCustomer.companyName || selectedCustomer.customerName}
+          Raise Inquiry for{" "}
+          {selectedCustomer.companyName || selectedCustomer.customerName}
         </h2>
 
         {/* Inquiry Error Message */}
@@ -56,9 +57,14 @@ const InquiryModal = ({
         {/* Product Lines */}
         <div className="space-y-6">
           {productLines.map((product, idx) => (
-            <div key={idx} className="border border-gray-200 p-4 rounded-md shadow-sm bg-gray-50 space-y-3">
+            <div
+              key={idx}
+              className="border border-gray-200 p-4 rounded-md shadow-sm bg-gray-50 space-y-3"
+            >
               <div className="flex justify-between items-center">
-                <h3 className="text-sm font-medium text-gray-700">Product {idx + 1}</h3>
+                <h3 className="text-sm font-medium text-gray-700">
+                  Product {idx + 1}
+                </h3>
                 {productLines.length > 1 && (
                   <button
                     onClick={() => removeProductLine(idx)}
@@ -69,39 +75,51 @@ const InquiryModal = ({
                   </button>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Product Name *</label>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Product Name *
+                  </label>
                   <input
                     type="text"
                     placeholder="Product Name"
                     value={product.productName}
-                    onChange={(e) => handleProductChange(idx, "productName", e.target.value)}
+                    onChange={(e) =>
+                      handleProductChange(idx, "productName", e.target.value)
+                    }
                     className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                     disabled={inquirySubmitting}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Brand</label>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Brand
+                  </label>
                   <input
                     type="text"
                     placeholder="Brand"
                     value={product.brand}
-                    onChange={(e) => handleProductChange(idx, "brand", e.target.value)}
+                    onChange={(e) =>
+                      handleProductChange(idx, "brand", e.target.value)
+                    }
                     className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     disabled={inquirySubmitting}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Quantity *</label>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Quantity *
+                  </label>
                   <input
                     type="number"
                     placeholder="Quantity"
                     value={product.quantity}
                     min={1}
-                    onChange={(e) => handleProductChange(idx, "quantity", e.target.value)}
+                    onChange={(e) =>
+                      handleProductChange(idx, "quantity", e.target.value)
+                    }
                     className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     disabled={inquirySubmitting}
                   />
@@ -110,23 +128,31 @@ const InquiryModal = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Category</label>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Category
+                  </label>
                   <input
                     type="text"
                     placeholder="Category"
-                    value={product.category || ''}
-                    onChange={(e) => handleProductChange(idx, "category", e.target.value)}
+                    value={product.category || ""}
+                    onChange={(e) =>
+                      handleProductChange(idx, "category", e.target.value)
+                    }
                     className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     disabled={inquirySubmitting}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Unit of Measure</label>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Unit of Measure
+                  </label>
                   <input
                     type="text"
                     placeholder="Unit of Measure (e.g. pcs, kg)"
-                    value={product.uom || ''}
-                    onChange={(e) => handleProductChange(idx, "uom", e.target.value)}
+                    value={product.uom || ""}
+                    onChange={(e) =>
+                      handleProductChange(idx, "uom", e.target.value)
+                    }
                     className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     disabled={inquirySubmitting}
                   />
@@ -134,11 +160,15 @@ const InquiryModal = ({
               </div>
 
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Description</label>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Description
+                </label>
                 <textarea
                   placeholder="Description"
-                  value={product.description || ''}
-                  onChange={(e) => handleProductChange(idx, "description", e.target.value)}
+                  value={product.description || ""}
+                  onChange={(e) =>
+                    handleProductChange(idx, "description", e.target.value)
+                  }
                   className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={2}
                   disabled={inquirySubmitting}
@@ -146,11 +176,15 @@ const InquiryModal = ({
               </div>
 
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Specifications</label>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Specifications
+                </label>
                 <textarea
                   placeholder="Specifications"
-                  value={product.specifications || ''}
-                  onChange={(e) => handleProductChange(idx, "specifications", e.target.value)}
+                  value={product.specifications || ""}
+                  onChange={(e) =>
+                    handleProductChange(idx, "specifications", e.target.value)
+                  }
                   className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={2}
                   disabled={inquirySubmitting}
