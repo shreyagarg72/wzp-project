@@ -13,6 +13,58 @@ const normalizeString = (str) => {
   return str ? str.trim().toLowerCase() : '';
 };
 
+
+// Get completed inquiries (existing route)
+router.get('/completed', async (req, res) => {
+  try {
+    console.log('Fetching completed inquiries...');
+
+    const inquiries = await Inquiry.find({ status: 'Completed' })
+      .populate('customerId', 'companyName email phone address gstin') // Added more fields
+      .populate('supplierQuotes.supplierId')
+      .lean();
+
+    // Optional: Rename customerId to customer for cleaner frontend use
+    const formatted = inquiries.map(inquiry => ({
+      ...inquiry,
+      customer: inquiry.customerId,
+      customerId: undefined
+    }));
+
+    console.log(`Found ${formatted.length} completed inquiries`);
+    res.json(formatted);
+  } catch (err) {
+    console.error('Error fetching completed inquiries:', err);
+    res.status(500).json({ error: 'Failed to fetch completed inquiries' });
+  }
+});
+
+// Get fulfilled inquiries (new route)
+router.get('/fulfilled', async (req, res) => {
+  try {
+    console.log('Fetching fulfilled inquiries...');
+
+    const inquiries = await Inquiry.find({ status: 'Fulfilled' })
+      .populate('customerId', 'companyName email phone address gstin')
+      .populate('supplierQuotes.supplierId')
+      .populate('orderId') // If you want to include order details
+      .lean();
+
+    // Format response similar to completed inquiries
+    const formatted = inquiries.map(inquiry => ({
+      ...inquiry,
+      customer: inquiry.customerId,
+      customerId: undefined
+    }));
+
+    console.log(`Found ${formatted.length} fulfilled inquiries`);
+    res.json(formatted);
+  } catch (err) {
+    console.error('Error fetching fulfilled inquiries:', err);
+    res.status(500).json({ error: 'Failed to fetch fulfilled inquiries' });
+  }
+});
+
 // Create new inquiry
 router.post("/", async (req, res) => {
   try {

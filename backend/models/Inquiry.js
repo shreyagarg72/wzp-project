@@ -13,6 +13,7 @@ const productLineSchema = new mongoose.Schema({
 
 const inquirySchema = new mongoose.Schema({
   inquiryId: { type: String, unique: true }, // e.g. INQ-0001
+  orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
   products: [productLineSchema],
   expectedDelivery: { type: Date },

@@ -16,11 +16,12 @@ const quoteItemSchema = new mongoose.Schema({
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({
+  orderId: { type: String, unique: true },
   inquiryId: { type: String, required: true },
   items: [quoteItemSchema],
   deliveryCharges: { type: Number, default: 0 },
   totalPrice: { type: Number, required: true },
-  status: { type: String, enum: ['Open','Accept', 'Negotiate', 'Decline'] },  
+  status: { type: String, enum: ['Open','Sent','Accept', 'Negotiate', 'Decline'] },  
   createdAt: { type: Date, default: Date.now }
 });
 

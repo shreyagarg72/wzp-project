@@ -30,11 +30,12 @@ app.use('/api', authRoutes); // ✅ use /api prefix
 app.use('/api/customers', customerRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/suppliers', supplierRoutes);
-app.use('/api/completedquote',sendQuoteRoute)
+// app.use('/api/inquiries',sendQuoteRoute)
 app.use('/api/send-inquiry-mails',sendInquiryEmail);
 app.use('/api/activitylogs',activityLogRoute);
 app.use('/api/products',productOverviewRoute);
 app.use('/api/sendQuoteResponse',sendCompanyResponse);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
