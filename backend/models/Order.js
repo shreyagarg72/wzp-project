@@ -21,7 +21,7 @@ const orderSchema = new mongoose.Schema({
   items: [quoteItemSchema],
   deliveryCharges: { type: Number, default: 0 },
   totalPrice: { type: Number, required: true },
-  status: { type: String, enum: ['Open','Sent','Accept', 'Negotiate', 'Decline'] },  
+  status: { type: String, enum: ['Open','Sent','Accept', 'Negotiation', 'Decline'] },  
   createdAt: { type: Date, default: Date.now }
 });
 
