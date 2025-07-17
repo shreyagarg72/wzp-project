@@ -5,6 +5,7 @@ const API_BASE_URL = "http://localhost:5000";
 const SendQuotesPage = () => {
   const [inquiries, setInquiries] = useState([]);
   const [marginMap, setMarginMap] = useState({});
+  const [discountMap, setDiscountMap] = useState({});
   const [deliveryCharges, setDeliveryCharges] = useState({});
   const [gstRates, setGstRates] = useState({});
   const [loading, setLoading] = useState(true);
@@ -38,14 +39,17 @@ const SendQuotesPage = () => {
         console.log("Fetched inquiries:", data);
         setInquiries(data);
 
-        // Initialize GST rates with default 18% for each product
+        // Initialize GST rates and discount with defaults
         const initialGstRates = {};
+        const initialDiscounts = {};
         data.forEach((inquiry) => {
           inquiry.products?.forEach((product) => {
             initialGstRates[inquiry._id + product.productId] = 0;
+            initialDiscounts[inquiry._id + product.productId] = 0;
           });
         });
         setGstRates(initialGstRates);
+        setDiscountMap(initialDiscounts);
 
         setError(null);
       } catch (err) {
@@ -71,6 +75,18 @@ const SendQuotesPage = () => {
       [inquiryId + productId]: parseFloat(margin) || 0,
     }));
   };
+  const handleSendClick = () => {
+    if (!selectedInquiry) return;
+    if (!confirm("Are you sure you want to send this quotation email?")) return;
+    sendResponse();
+  };
+
+  const handleDiscountChange = (inquiryId, productId, discount) => {
+    setDiscountMap((prev) => ({
+      ...prev,
+      [inquiryId + productId]: parseFloat(discount) || 0,
+    }));
+  };
 
   const handleDeliveryChargeChange = (inquiryId, charges) => {
     setDeliveryCharges((prev) => ({
@@ -86,15 +102,34 @@ const SendQuotesPage = () => {
     }));
   };
 
-  const calculatePrice = (basePrice, margin) => {
+  const calculatePrice = (basePrice, margin, discount, gstRate) => {
     const base = parseFloat(basePrice) || 0;
     const marginPercent = parseFloat(margin) || 0;
-    return base + (base * marginPercent) / 100;
+    const discountPercent = parseFloat(discount) || 0;
+    const gst = parseFloat(gstRate) || 0;
+
+    // Apply margin first
+    const priceAfterMargin = base + (base * marginPercent) / 100;
+
+    // Apply discount
+    const priceAfterDiscount =
+      priceAfterMargin - (priceAfterMargin * discountPercent) / 100;
+
+    // Apply GST
+    const finalPrice = priceAfterDiscount + (priceAfterDiscount * gst) / 100;
+
+    return {
+      priceAfterMargin: parseFloat(priceAfterMargin.toFixed(2)),
+      priceAfterDiscount: parseFloat(priceAfterDiscount.toFixed(2)),
+      gstAmount: parseFloat(((priceAfterDiscount * gst) / 100).toFixed(2)),
+      finalPrice: parseFloat(finalPrice.toFixed(2)),
+    };
   };
 
   const calculateTotals = (inquiry) => {
     let subtotal = 0;
     let totalGstAmount = 0;
+    let totalDiscount = 0;
 
     inquiry.products?.forEach((product) => {
       const quote = inquiry.supplierQuotes
@@ -103,13 +138,16 @@ const SendQuotesPage = () => {
       const base = parseFloat(quote?.price) || 0;
       const margin =
         parseFloat(marginMap[inquiry._id + product.productId]) || 0;
-      const finalPrice = calculatePrice(base, margin);
+      const discount =
+        parseFloat(discountMap[inquiry._id + product.productId]) || 0;
       const gstRate =
         parseFloat(gstRates[inquiry._id + product.productId]) || 0;
-      const gstAmount = finalPrice * (gstRate / 100);
 
-      subtotal += finalPrice;
-      totalGstAmount += gstAmount;
+      const prices = calculatePrice(base, margin, discount, gstRate);
+
+      subtotal += prices.priceAfterDiscount;
+      totalGstAmount += prices.gstAmount;
+      totalDiscount += prices.priceAfterMargin - prices.priceAfterDiscount;
     });
 
     const delivery = parseFloat(deliveryCharges[inquiry._id]) || 0;
@@ -119,6 +157,7 @@ const SendQuotesPage = () => {
       subtotal: parseFloat(subtotal.toFixed(2)),
       delivery: parseFloat(delivery.toFixed(2)),
       gstAmount: parseFloat(totalGstAmount.toFixed(2)),
+      totalDiscount: parseFloat(totalDiscount.toFixed(2)),
       total: parseFloat(total.toFixed(2)),
     };
   };
@@ -146,30 +185,39 @@ const SendQuotesPage = () => {
       return;
     }
 
-  const quoteData = selectedInquiry.products.map((product) => {
-  const productId = product.productId;
-  const quote = selectedInquiry.supplierQuotes
-    ?.flatMap((s) => s.quotes)
-    ?.find((q) => q.productId === productId?.toString());
+    const quoteData = selectedInquiry.products.map((product) => {
+      const productId = product.productId;
+      const quote = selectedInquiry.supplierQuotes
+        ?.flatMap((s) => s.quotes)
+        ?.find((q) => q.productId === productId?.toString());
 
-  const basePrice = parseFloat(quote?.price) || 0;
-  const margin = parseFloat(marginMap[selectedInquiry._id + productId]) || 0;
-  const gstRate = parseFloat(gstRates[selectedInquiry._id + productId]) || 0;
-  const priceAfterMargin = calculatePrice(basePrice, margin);
-  const gstAmount = priceAfterMargin * (gstRate / 100);
-  const finalPrice = priceAfterMargin + gstAmount;
+      const basePrice = parseFloat(quote?.price) || 0;
+      const margin =
+        parseFloat(marginMap[selectedInquiry._id + productId]) || 0;
+      const discount =
+        parseFloat(discountMap[selectedInquiry._id + productId]) || 0;
+      const gstRate =
+        parseFloat(gstRates[selectedInquiry._id + productId]) || 0;
 
-  return {
+      const prices = calculatePrice(basePrice, margin, discount, gstRate);
+
+      return {
   name: product.name,
   brand: product.brand,
   quantity: product.quantity,
-  margin: parseFloat(margin.toFixed(2)),
+  category: product.category,
+  description: product.description,
+  specifications: product.specifications,
+  uom: product.uom,
+  basePrice: parseFloat(basePrice.toFixed(2)),   // ✅ Add this
+  margin: parseFloat(margin.toFixed(2)),         // ✅ And this
+  discount: parseFloat(discount.toFixed(2)),
   gstRate: parseFloat(gstRate.toFixed(2)),
-  finalPrice: parseFloat(finalPrice.toFixed(2)),
+  gstAmount: prices.gstAmount,
+  finalPrice: prices.finalPrice,
 };
 
-});
-
+    });
 
     const deliveryChargeAmount =
       parseFloat(deliveryCharges[selectedInquiry._id]) || 0;
@@ -270,7 +318,7 @@ const SendQuotesPage = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">
             Send Quotations
@@ -282,7 +330,7 @@ const SendQuotesPage = () => {
 
         <div className="space-y-6">
           {inquiries.map((inquiry) => {
-            const { subtotal, delivery, gstAmount, total } =
+            const { subtotal, delivery, gstAmount, totalDiscount, total } =
               calculateTotals(inquiry);
 
             return (
@@ -334,6 +382,9 @@ const SendQuotesPage = () => {
                             Margin %
                           </th>
                           <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                            Discount %
+                          </th>
+                          <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
                             GST %
                           </th>
                           <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
@@ -358,16 +409,21 @@ const SendQuotesPage = () => {
                             parseFloat(
                               marginMap[inquiry._id + product.productId]
                             ) || 0;
+                          const discount =
+                            parseFloat(
+                              discountMap[inquiry._id + product.productId]
+                            ) || 0;
                           const gstRate =
                             parseFloat(
                               gstRates[inquiry._id + product.productId]
                             ) || 0;
-                          const priceAfterMargin = calculatePrice(
+
+                          const prices = calculatePrice(
                             basePrice,
-                            margin
+                            margin,
+                            discount,
+                            gstRate
                           );
-                          const gstAmount = priceAfterMargin * (gstRate / 100);
-                          const finalPrice = priceAfterMargin + gstAmount;
 
                           return (
                             <tr
@@ -430,6 +486,28 @@ const SendQuotesPage = () => {
                                   <input
                                     type="number"
                                     className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                    value={discount}
+                                    onChange={(e) =>
+                                      handleDiscountChange(
+                                        inquiry._id,
+                                        product.productId,
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="0"
+                                    min="0"
+                                    step="0.1"
+                                  />
+                                  <span className="ml-1 text-sm text-gray-500">
+                                    %
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="border border-gray-300 px-3 py-2">
+                                <div className="flex items-center">
+                                  <input
+                                    type="number"
+                                    className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                                     value={gstRate}
                                     onChange={(e) =>
                                       handleGstRateChange(
@@ -449,7 +527,7 @@ const SendQuotesPage = () => {
                                 </div>
                               </td>
                               <td className="border border-gray-300 px-3 py-2 text-sm font-bold text-green-600">
-                                ₹{finalPrice.toFixed(2)}
+                                ₹{prices.finalPrice.toFixed(2)}
                               </td>
                             </tr>
                           );
@@ -489,8 +567,14 @@ const SendQuotesPage = () => {
                       <div className="text-right">
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span>Subtotal (incl. GST):</span>
-                            <span>₹{(subtotal + gstAmount).toFixed(2)}</span>
+                            <span>Subtotal:</span>
+                            <span>₹{subtotal.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Total Discount:</span>
+                            <span className="text-red-600">
+                              -₹{totalDiscount.toFixed(2)}
+                            </span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span>Total GST:</span>
@@ -604,7 +688,7 @@ const SendQuotesPage = () => {
                 Cancel
               </button>
               <button
-                onClick={sendResponse}
+                onClick={handleSendClick}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 Send Email
