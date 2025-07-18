@@ -30,7 +30,23 @@ export default function LoginPage() {
       if (res.ok) {
         toast.success("Login successful!");
         localStorage.setItem("token", data.token);
-        navigate("/dashboard"); // <-- should work
+
+        // Store user info including admin status
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            username: form.username,
+            isAdmin: form.isAdmin,
+            ...data.user, // Include any additional user data from backend
+          })
+        );
+
+        // Navigate based on admin status
+        if (form.isAdmin) {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
         toast.error(data.message || "Login failed");
       }
@@ -39,7 +55,6 @@ export default function LoginPage() {
       toast.error("Something went wrong");
     }
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
       <ToastContainer />

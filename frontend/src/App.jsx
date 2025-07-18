@@ -7,17 +7,26 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Suppliers from "./pages/Suppliers";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import  Product  from "./pages/Product";
+import Product from "./pages/Product";
 import SendQuotesPage from "./pages/SendQuotesPage";
-
+import AdminDashboard from "./pages/AdminDasboard";
 export default function App() {
   return (
     <Router>
-      <AuthProvider> {/* ✅ Now useNavigate() works inside AuthContext */}
+      <AuthProvider>
+        {" "}
+        {/* ✅ Now useNavigate() works inside AuthContext */}
         <Routes>
           {/* Login Route (No Layout) */}
           <Route path="/" element={<LoginPage />} />
-
+          <Route
+              path="/admin-dashboard"
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
           {/* DashboardLayout wraps all sidebar-based routes */}
           <Route element={<DashboardLayout />}>
             <Route
@@ -28,6 +37,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+      
             <Route
               path="/customers"
               element={

@@ -13,6 +13,7 @@ import sendQuoteRoute from './routes/sendQuoteRoute.js';
 import activityLogRoute from './routes/activityLogRoute.js';
 import productOverviewRoute from './routes/productOverviewRoute.js';
 import orderRoutes from './routes/orderRoutes.js';
+import admin from './routes/admin.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -35,6 +36,7 @@ app.use('/api/send-inquiry-mails',sendInquiryEmail);
 app.use('/api/activitylogs',activityLogRoute);
 app.use('/api/products',productOverviewRoute);
 app.use('/api/orders',orderRoutes);
+app.use('/api/admin',admin);
 app.use('/api/sendQuoteResponse',sendCompanyResponse);
 
 const PORT = process.env.PORT || 5000;

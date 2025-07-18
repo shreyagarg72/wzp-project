@@ -50,7 +50,7 @@ router.post('/:action', async (req, res) => {
       order.status = 'Negotiation';
       await order.save();
 
-      inquiry.status = 'Completed'; // Optional: can keep editable status
+      // inquiry.status = 'Completed'; // Optional: can keep editable status
       await inquiry.save();
 
       return res.json({
