@@ -27,22 +27,13 @@ router.post('/:action', async (req, res) => {
       await order.save();
       await inquiry.save();
 
-      // ✅ Remove order and inquiry after processing
-      await Order.deleteOne({ inquiryId });
-      await Inquiry.deleteOne({ inquiryId });
-
-      return res.json({ message: 'Order accepted and removed from system' });
+      return res.json({ message: 'Order accepted' });
     }
 
     if (action === 'decline') {
       order.status = 'Decline';
       await order.save();
-
-      // ✅ Remove order and inquiry after processing
-      await Order.deleteOne({ inquiryId });
-      await Inquiry.deleteOne({ inquiryId });
-
-      return res.json({ message: 'Order declined and removed from system' });
+      return res.json({ message: 'Order declined' });
     }
 
     if (action === 'edit') {
@@ -50,7 +41,7 @@ router.post('/:action', async (req, res) => {
       order.status = 'Negotiation';
       await order.save();
 
-      // inquiry.status = 'Completed'; // Optional: can keep editable status
+      inquiry.status = 'Completed'; // Optional: can keep editable status
       await inquiry.save();
 
       return res.json({
