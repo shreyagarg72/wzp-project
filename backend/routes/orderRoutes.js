@@ -55,5 +55,15 @@ router.post('/:action', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+router.get("/", async (req, res) => {
+  try {
+    const orders = await Order.find({}, "inquiryId status"); // fetch only required fields
+    res.json(orders);
+  } catch (err) {
+    console.error("Error fetching orders:", err);
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
+});
+
 
 export default router;

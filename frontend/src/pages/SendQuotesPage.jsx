@@ -516,16 +516,42 @@ const SendQuotesPage = () => {
         }
       );
 
-      if (!completedResponse.ok || !fulfilledResponse.ok) {
-        throw new Error("Failed to fetch inquiries");
+      const ordersResponse = await fetch(`${API_BASE_URL}/api/orders`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (
+        !completedResponse.ok ||
+        !fulfilledResponse.ok ||
+        !ordersResponse.ok
+      ) {
+        throw new Error("Failed to fetch data");
       }
 
       const completedData = await completedResponse.json();
       const fulfilledData = await fulfilledResponse.json();
+      const ordersData = await ordersResponse.json();
+      // Keep completed inquiries as is (no filtering)
+      const orderStatusMap = {};
+      ordersData.forEach((order) => {
+        orderStatusMap[order.inquiryId] = order.status;
+      });
 
+      // Keep completed inquiries as is (no filtering)
       setCompletedInquiries(completedData);
-      setFulfilledInquiries(fulfilledData);
 
+      // For sent quotations, combine both completed and fulfilled inquiries
+      // then filter based on ORDER STATUS (Open/Sent)
+      const allInquiries = [...completedData, ...fulfilledData];
+
+      const filteredSentQuotations = allInquiries.filter((inquiry) => {
+        const orderStatus = orderStatusMap[inquiry.inquiryId];
+        return orderStatus === "Open" || orderStatus === "Sent";
+      });
+
+      setFulfilledInquiries(filteredSentQuotations);
       // Initialize GST rates, discounts, and margins with defaults for completed inquiries
       const initialGstRates = {};
       const initialDiscounts = {};
@@ -586,17 +612,23 @@ const SendQuotesPage = () => {
 
   const openEmailModal = (inquiry) => {
     setSelectedInquiry(inquiry);
-    
+
     // Check if this is a revision (inquiry was edited before)
-    const isRevision = inquiry.status === 'Completed' && inquiry.orderId;
-    
+    const isRevision = inquiry.status === "Completed" && inquiry.orderId;
+
     setEmailForm({
       toEmails: inquiry.customer?.email || "",
       ccEmails: "",
-      subject: `${isRevision ? 'REVISED ' : ''}Quotation for Inquiry ID: ${inquiry.inquiryId}`,
+      subject: `${isRevision ? "REVISED " : ""}Quotation for Inquiry ID: ${
+        inquiry.inquiryId
+      }`,
       message: `Dear ${
         inquiry.customer?.companyName || "Valued Customer"
-      },\n\n${isRevision ? 'Please find the attached revised quotation with updated pricing for your inquiry.' : 'Please find the attached quotation for your inquiry.'}\n\nRegards,\nCRM Team`,
+      },\n\n${
+        isRevision
+          ? "Please find the attached revised quotation with updated pricing for your inquiry."
+          : "Please find the attached quotation for your inquiry."
+      }\n\nRegards,\nCRM Team`,
     });
     setShowModal(true);
   };
@@ -694,9 +726,9 @@ const SendQuotesPage = () => {
 
   const resetInquiryData = (inquiryId) => {
     // Reset all form data for this inquiry
-    setMarginMap(prev => {
+    setMarginMap((prev) => {
       const newMap = { ...prev };
-      Object.keys(newMap).forEach(key => {
+      Object.keys(newMap).forEach((key) => {
         if (key.startsWith(inquiryId)) {
           delete newMap[key];
         }
@@ -704,9 +736,9 @@ const SendQuotesPage = () => {
       return newMap;
     });
 
-    setDiscountMap(prev => {
+    setDiscountMap((prev) => {
       const newMap = { ...prev };
-      Object.keys(newMap).forEach(key => {
+      Object.keys(newMap).forEach((key) => {
         if (key.startsWith(inquiryId)) {
           delete newMap[key];
         }
@@ -714,9 +746,9 @@ const SendQuotesPage = () => {
       return newMap;
     });
 
-    setGstRates(prev => {
+    setGstRates((prev) => {
       const newMap = { ...prev };
-      Object.keys(newMap).forEach(key => {
+      Object.keys(newMap).forEach((key) => {
         if (key.startsWith(inquiryId)) {
           delete newMap[key];
         }
@@ -724,7 +756,7 @@ const SendQuotesPage = () => {
       return newMap;
     });
 
-    setDeliveryCharges(prev => {
+    setDeliveryCharges((prev) => {
       const newMap = { ...prev };
       delete newMap[inquiryId];
       return newMap;
@@ -747,8 +779,10 @@ const SendQuotesPage = () => {
 
       const result = await response.json();
       if (response.ok) {
-        if (action === 'edit') {
-          alert("Order moved to editing mode. You can now modify the pricing and resend the quotation.");
+        if (action === "edit") {
+          alert(
+            "Order moved to editing mode. You can now modify the pricing and resend the quotation."
+          );
           // Switch to completed tab to show the inquiry for editing
           setActiveTab("completed");
         } else {
@@ -851,7 +885,7 @@ const SendQuotesPage = () => {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                Send Quote to Company ({completedInquiries.length})
+                Pending Quotes ({completedInquiries.length})
               </button>
               <button
                 onClick={() => setActiveTab("fulfilled")}
@@ -872,7 +906,11 @@ const SendQuotesPage = () => {
           {currentInquiries.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500">
-                No {activeTab === "completed" ? "completed" : "fulfilled"} inquiries found.
+                No{" "}
+                {activeTab === "completed"
+                  ? "pending quotes"
+                  : "sent quotations with Open/Sent status"}{" "}
+                found.
               </p>
             </div>
           ) : (
@@ -901,8 +939,10 @@ const SendQuotesPage = () => {
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
-              <h3 className="text-lg font-semibold mb-4">Send Quotation Email</h3>
-              
+              <h3 className="text-lg font-semibold mb-4">
+                Send Quotation Email
+              </h3>
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -911,7 +951,9 @@ const SendQuotesPage = () => {
                   <input
                     type="text"
                     value={emailForm.toEmails}
-                    onChange={(e) => setEmailForm({...emailForm, toEmails: e.target.value})}
+                    onChange={(e) =>
+                      setEmailForm({ ...emailForm, toEmails: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                     placeholder="customer@company.com"
                   />
@@ -924,7 +966,9 @@ const SendQuotesPage = () => {
                   <input
                     type="text"
                     value={emailForm.ccEmails}
-                    onChange={(e) => setEmailForm({...emailForm, ccEmails: e.target.value})}
+                    onChange={(e) =>
+                      setEmailForm({ ...emailForm, ccEmails: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                     placeholder="manager@company.com"
                   />
@@ -937,7 +981,9 @@ const SendQuotesPage = () => {
                   <input
                     type="text"
                     value={emailForm.subject}
-                    onChange={(e) => setEmailForm({...emailForm, subject: e.target.value})}
+                    onChange={(e) =>
+                      setEmailForm({ ...emailForm, subject: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -948,7 +994,9 @@ const SendQuotesPage = () => {
                   </label>
                   <textarea
                     value={emailForm.message}
-                    onChange={(e) => setEmailForm({...emailForm, message: e.target.value})}
+                    onChange={(e) =>
+                      setEmailForm({ ...emailForm, message: e.target.value })
+                    }
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                   />
