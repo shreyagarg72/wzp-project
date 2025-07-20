@@ -9,9 +9,9 @@ const quoteItemSchema = new mongoose.Schema({
   specifications: { type: String },
   uom: { type: String },
   basePrice: { type: Number, required: true },
-  margin: { type: Number, required: true },
- discount: { type: Number, required: true },
-  gstRate: { type: Number, required: true },
+  margin: { type: Number },
+ discount: { type: Number },
+  gstRate: { type: Number},
   finalPrice: { type: Number, required: true }
 }, { _id: false });
 
