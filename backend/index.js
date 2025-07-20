@@ -1,6 +1,8 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import cron from 'node-cron';
+
 import dotenv from 'dotenv';
 dotenv.config();
 import sendCompanyResponse from './routes/sendCompanyResponse.js';
@@ -13,7 +15,7 @@ import sendQuoteRoute from './routes/sendQuoteRoute.js';
 import activityLogRoute from './routes/activityLogRoute.js';
 import productOverviewRoute from './routes/productOverviewRoute.js';
 import orderRoutes from './routes/orderRoutes.js';
-import admin from './routes/admin.js';
+import admin , { checkAndCreateNotifications }from './routes/admin.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -37,9 +39,27 @@ app.use('/api/activitylogs',activityLogRoute);
 app.use('/api/products',productOverviewRoute);
 app.use('/api/orders',orderRoutes);
 app.use('/api/admin',admin);
+cron.schedule('0 9 * * *', async () => {
+  console.log('Running scheduled notification check...');
+  await checkAndCreateNotifications();
+});
+
+// Also run notification check every 6 hours for more frequent monitoring
+cron.schedule('0 */6 * * *', async () => {
+  console.log('Running periodic notification check...');
+  await checkAndCreateNotifications();
+});
+
 app.use('/api/sendQuoteResponse',sendCompanyResponse);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log('Notification scheduler initialized');
+  
+  // Run initial notification check on server start
+  setTimeout(async () => {
+    console.log('Running initial notification check...');
+    await checkAndCreateNotifications();
+  }, 5000);
 });
