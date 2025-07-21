@@ -3,6 +3,7 @@ import CustomerForm from "../components/CustomerForm";
 import CustomerList from "../components/CustomerList";
 import InquiryModal from "../components/InquiryModal";
 import { customerService } from "../api/customerService";
+import { productService } from "../api/productService";
 
 export default function Customer() {
   // Customer form state
@@ -22,15 +23,32 @@ export default function Customer() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Products state
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
   // Inquiry state
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
   const [productLines, setProductLines] = useState([
-    { productName: "", brand: "", quantity: 1 },
+    { productName: "", brand: "", quantity: 1, selectedProductId: null, isCustom: false },
   ]);
   const [expectedDelivery, setExpectedDelivery] = useState("");
   const [inquirySubmitting, setInquirySubmitting] = useState(false);
   const [inquiryError, setInquiryError] = useState(null);
+
+  // Fetch products
+  const fetchProducts = async () => {
+    try {
+      setLoadingProducts(true);
+      const productsData = await productService.fetchProducts();
+      setProducts(productsData);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   // Customer operations
   const fetchCustomers = async () => {
@@ -86,7 +104,7 @@ export default function Customer() {
   // Inquiry operations
   const openInquiryForm = (customer) => {
     setSelectedCustomer(customer);
-    setProductLines([{ productName: "", brand: "", quantity: 1 }]);
+    setProductLines([{ productName: "", brand: "", quantity: 1, selectedProductId: null, isCustom: false }]);
     setExpectedDelivery("");
     setInquiryError(null);
     setInquiryModalOpen(true);
@@ -94,14 +112,48 @@ export default function Customer() {
 
   const handleProductChange = (index, key, value) => {
     const updated = [...productLines];
-    updated[index][key] = value;
+    
+    if (key === 'selectedProductId') {
+      // When selecting a product from dropdown
+      const selectedProduct = products.find(p => p._id === value);
+      if (selectedProduct) {
+        updated[index] = {
+          ...updated[index],
+          selectedProductId: value,
+          productName: selectedProduct.productName,
+          brand: selectedProduct.brand,
+          category: selectedProduct.category,
+          description: selectedProduct.description,
+          specifications: selectedProduct.specifications,
+          uom: selectedProduct.uom,
+          isCustom: false
+        };
+      } else if (value === 'custom') {
+        // Switch to custom product mode
+        updated[index] = {
+          ...updated[index],
+          selectedProductId: null,
+          productName: "",
+          brand: "",
+          category: "",
+          description: "",
+          specifications: "",
+          uom: "",
+          isCustom: true
+        };
+      }
+    } else {
+      // Regular field update
+      updated[index][key] = value;
+    }
+    
     setProductLines(updated);
   };
 
   const addProductLine = () => {
     setProductLines([
       ...productLines,
-      { productName: "", brand: "", quantity: 1 },
+      { productName: "", brand: "", quantity: 1, selectedProductId: null, isCustom: false },
     ]);
   };
 
@@ -152,6 +204,7 @@ export default function Customer() {
           description: (p.description || "").trim(),
           specifications: (p.specifications || "").trim(),
           uom: (p.uom || "").trim(),
+          productId: p.selectedProductId || null
         })),
       };
 
@@ -165,7 +218,7 @@ export default function Customer() {
       alert(`Inquiry submitted successfully! Inquiry ID: ${payload.inquiryId}`);
 
       // Reset form and close modal
-      setProductLines([{ productName: "", brand: "", quantity: 1 }]);
+      setProductLines([{ productName: "", brand: "", quantity: 1, selectedProductId: null, isCustom: false }]);
       setExpectedDelivery("");
       setInquiryModalOpen(false);
       setSelectedCustomer(null);
@@ -179,13 +232,14 @@ export default function Customer() {
   const closeInquiryModal = () => {
     setInquiryModalOpen(false);
     setSelectedCustomer(null);
-    setProductLines([{ productName: "", brand: "", quantity: 1 }]);
+    setProductLines([{ productName: "", brand: "", quantity: 1, selectedProductId: null, isCustom: false }]);
     setExpectedDelivery("");
     setInquiryError(null);
   };
 
   useEffect(() => {
     fetchCustomers();
+    fetchProducts();
   }, []);
 
   return (
@@ -229,6 +283,8 @@ export default function Customer() {
         expectedDelivery={expectedDelivery}
         setExpectedDelivery={setExpectedDelivery}
         productLines={productLines}
+        products={products}
+        loadingProducts={loadingProducts}
         handleProductChange={handleProductChange}
         addProductLine={addProductLine}
         removeProductLine={removeProductLine}

@@ -7,6 +7,8 @@ const InquiryModal = ({
   expectedDelivery,
   setExpectedDelivery,
   productLines,
+  products,
+  loadingProducts,
   handleProductChange,
   addProductLine,
   removeProductLine,
@@ -18,7 +20,7 @@ const InquiryModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl shadow-lg relative max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full max-w-5xl shadow-lg relative max-h-[90vh] overflow-y-auto">
         <button
           className="absolute top-2 right-4 text-gray-500 hover:text-gray-800 text-xl"
           onClick={closeInquiryModal}
@@ -76,6 +78,31 @@ const InquiryModal = ({
                 )}
               </div>
 
+              {/* Product Selection Dropdown */}
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Product
+                </label>
+                <select
+                  value={product.selectedProductId || (product.isCustom ? 'custom' : '')}
+                  onChange={(e) => handleProductChange(idx, 'selectedProductId', e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={inquirySubmitting || loadingProducts}
+                >
+                  <option value="">Select existing product...</option>
+                  {products.map((prod) => (
+                    <option key={prod._id} value={prod._id}>
+                      {prod.productName} - {prod.brand} ({prod.uom || 'N/A'})
+                    </option>
+                  ))}
+                  <option value="custom">+ Add Custom Product</option>
+                </select>
+                {loadingProducts && (
+                  <p className="text-xs text-gray-500 mt-1">Loading products...</p>
+                )}
+              </div>
+
+              {/* Product Details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">
@@ -90,7 +117,7 @@ const InquiryModal = ({
                     }
                     className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
-                    disabled={inquirySubmitting}
+                    disabled={inquirySubmitting || (!product.isCustom && product.selectedProductId)}
                   />
                 </div>
                 <div>
@@ -105,7 +132,7 @@ const InquiryModal = ({
                       handleProductChange(idx, "brand", e.target.value)
                     }
                     className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    disabled={inquirySubmitting}
+                    disabled={inquirySubmitting || (!product.isCustom && product.selectedProductId)}
                   />
                 </div>
                 <div>
@@ -139,7 +166,7 @@ const InquiryModal = ({
                       handleProductChange(idx, "category", e.target.value)
                     }
                     className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    disabled={inquirySubmitting}
+                    disabled={inquirySubmitting || (!product.isCustom && product.selectedProductId)}
                   />
                 </div>
                 <div>
@@ -154,7 +181,7 @@ const InquiryModal = ({
                       handleProductChange(idx, "uom", e.target.value)
                     }
                     className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    disabled={inquirySubmitting}
+                    disabled={inquirySubmitting || (!product.isCustom && product.selectedProductId)}
                   />
                 </div>
               </div>
@@ -171,7 +198,7 @@ const InquiryModal = ({
                   }
                   className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={2}
-                  disabled={inquirySubmitting}
+                  disabled={inquirySubmitting || (!product.isCustom && product.selectedProductId)}
                 />
               </div>
 
@@ -187,9 +214,26 @@ const InquiryModal = ({
                   }
                   className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={2}
-                  disabled={inquirySubmitting}
+                  disabled={inquirySubmitting || (!product.isCustom && product.selectedProductId)}
                 />
               </div>
+
+              {/* Show selected product info */}
+              {product.selectedProductId && !product.isCustom && (
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <p className="text-xs text-blue-700 font-medium">Selected Product Details:</p>
+                  <p className="text-xs text-blue-600">
+                    <strong>Name:</strong> {product.productName} | 
+                    <strong> Brand:</strong> {product.brand} | 
+                    <strong> UOM:</strong> {product.uom || 'N/A'}
+                  </p>
+                  {product.specifications && (
+                    <p className="text-xs text-blue-600">
+                      <strong>Specifications:</strong> {product.specifications}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ))}
 

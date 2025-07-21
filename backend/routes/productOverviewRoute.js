@@ -1,11 +1,41 @@
 // routes/productOverview.routes.js
 import express from 'express';
 import Inquiry from '../models/Inquiry.js';
-// import Product from '../models/product.model.js';
-// import Customer from '../models/customer.model.js';
-// import Supplier from '../models/supplier.model.js';
+import Product from '../models/Product.js';
 
 const router = express.Router();
+
+router.get('/', async (req, res) => {
+  try {
+    const products = await Product.find({}).select('productId productName brand category description specifications uom');
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ message: 'Error fetching products', error: error.message });
+  }
+});
+
+// Add a new product
+router.post('/', async (req, res) => {
+  try {
+    const { productName, brand, category, description, specifications, uom } = req.body;
+    
+    const product = new Product({
+      productName,
+      brand,
+      category,
+      description,
+      specifications,
+      uom
+    });
+    
+    const savedProduct = await product.save();
+    res.status(201).json(savedProduct);
+  } catch (error) {
+    console.error('Error adding product:', error);
+    res.status(500).json({ message: 'Error adding product', error: error.message });
+  }
+});
 
 router.get('/overview', async (req, res) => {
   try {
