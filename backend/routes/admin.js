@@ -838,28 +838,49 @@ router.patch("/analytics/notifications/:id/read", async (req, res) => {
     res.status(500).json({ error: "Failed to mark notification as read" });
   }
 });
-
 router.get("/dashboard-stats", async (req, res) => {
   try {
     const orders = await Order.find();
-    const acceptedOrders = await Order.find({ status: "Accept" });
+    const acceptedOrders = orders.filter(order => order.status === "Accept");
+
     const totalRevenue = acceptedOrders.reduce(
       (sum, order) => sum + order.totalPrice,
       0
     );
 
-    // Total Orders
     const totalOrders = orders.length;
 
-    // Active Customers
-    const customers = await Customer.find();
-    const activeCustomers = customers.filter(
-      (c) => c.status === "Active"
-    ).length;
+    // Get all inquiries
+    const inquiries = await Inquiry.find();
 
-    // Pending Quotes
+    // Get inquiryId strings from orders with "Open" status
+    const openOrders = orders.filter(order => order.status === "Open");
+    const openInquiryIds = new Set(openOrders.map(order => order.inquiryId));
+
+    // Count active inquiries based on business logic:
+    // 1. Inquiries with status "Open" or "Processing" are always active
+    // 2. Inquiries with status "Fulfilled" are active if they have an associated order with "Open" status
+    // 3. Inquiries with status "Completed" without orders are NOT active
+    const activeInquiries = inquiries.filter(inquiry => {
+      if (inquiry.status === "Open" || inquiry.status === "Processing" || inquiry.status === "Completed") {
+        return true;
+      }
+      if (inquiry.status === "Fulfilled" && openInquiryIds.has(inquiry.inquiryId)) {
+        return true;
+      }
+      return false;
+    });
+
+    // Get unique customer IDs from active inquiries
+    const activeCustomerIds = new Set(
+      activeInquiries.map(inq => inq.customerId.toString())
+    );
+
+    const activeCustomers = activeCustomerIds.size;
+
+    // Pending quotes should be orders with status "Open" or "Sent"
     const pendingQuotes = orders.filter(
-      (order) => order.status === "Open" || order.status === "Sent"
+      (order) => order.status === "Open" || order.status === "Negotiation"
     ).length;
 
     res.json({
@@ -873,6 +894,8 @@ router.get("/dashboard-stats", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch dashboard stats" });
   }
 });
+
+
 // In routes/admin.js
 router.get("/order-status-summary", async (req, res) => {
   try {
