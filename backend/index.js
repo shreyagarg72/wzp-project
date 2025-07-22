@@ -16,6 +16,7 @@ import activityLogRoute from './routes/activityLogRoute.js';
 import productOverviewRoute from './routes/productOverviewRoute.js';
 import orderRoutes from './routes/orderRoutes.js';
 import admin , { checkAndCreateNotifications }from './routes/admin.js';
+import delayedNotificationsRoute from './routes/delayedNotificationsRoute.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -51,7 +52,7 @@ cron.schedule('0 */6 * * *', async () => {
 });
 
 app.use('/api/sendQuoteResponse',sendCompanyResponse);
-
+app.use('/api/notifications', delayedNotificationsRoute);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

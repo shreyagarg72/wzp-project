@@ -7,6 +7,22 @@ export default function Navbar() {
   const [loading, setLoading] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
+  const [delayedActions, setDelayedActions] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    const fetchDelayedActions = async () => {
+      try {
+        const apiUrl = import.meta.env?.VITE_API_URL || "http://localhost:5000";
+        const res = await fetch(`${apiUrl}/api/notifications/delayed-actions`);
+        const data = await res.json();
+        setDelayedActions(data);
+      } catch (error) {
+        console.error("Failed to fetch delayed actions", error);
+      }
+    };
+    fetchDelayedActions();
+  }, []);
 
   // Fetch user data from backend
   useEffect(() => {
@@ -149,72 +165,100 @@ export default function Navbar() {
         )}
       </h2>
 
-      <div className="flex items-center gap-6">
-        {/* Notification Bell */}
-        <button className="relative">
-          <Bell className="w-5 h-5 text-gray-500 hover:text-gray-700 transition-colors" />
-          <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-red-500" />
+     <div className="flex items-center gap-6 relative">
+  {/* Notification Bell */}
+  <button
+    className="relative"
+    onClick={() => setShowNotifications(!showNotifications)}
+  >
+    <Bell className="w-5 h-5 text-gray-500 hover:text-gray-700 transition-colors" />
+    {delayedActions.length > 0 && (
+      <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-red-500" />
+    )}
+  </button>
+
+  {/* 🔔 Notification Popup */}
+  {showNotifications && (
+    <div className="absolute right-10 top-10 w-96 max-h-80 overflow-auto bg-white shadow-lg rounded-lg border z-50 p-4">
+      <h4 className="font-semibold text-gray-700 mb-2">Pending Actions</h4>
+      {delayedActions.length === 0 ? (
+        <p className="text-sm text-gray-500">No pending actions 🎉</p>
+      ) : (
+        <ul className="space-y-2 text-sm">
+          {delayedActions.map((action, index) => (
+            <li
+              key={index}
+              className="p-2 bg-gray-50 border border-gray-100 rounded-md"
+            >
+              <span className="font-medium">{action.type}:</span>{" "}
+              {action.message}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )}
+
+  {/* Profile Dropdown */}
+  <div className="relative profile-dropdown">
+    <button
+      onClick={toggleDropdown}
+      className="flex items-center gap-2 hover:bg-gray-50 p-2 rounded-lg transition-colors"
+    >
+      {loading ? (
+        <div className="w-8 h-8 bg-gray-300 rounded-full animate-pulse"></div>
+      ) : user ? (
+        <div
+          className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${getAvatarColor(
+            user.username
+          )}`}
+        >
+          {getUserInitials(user.username)}
+        </div>
+      ) : (
+        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+          <span className="text-gray-500 text-sm">?</span>
+        </div>
+      )}
+      <ChevronDown
+        className={`w-4 h-4 text-gray-500 transition-transform ${
+          showDropdown ? "rotate-180" : ""
+        }`}
+      />
+    </button>
+
+    {/* Dropdown Menu */}
+    {showDropdown && (
+      <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md py-2 text-sm z-50 border">
+        {user && (
+          <div className="px-4 py-2 border-b border-gray-100">
+            <p className="font-medium text-gray-800">{user.username}</p>
+            <p className="text-xs text-gray-500 capitalize">
+              {user.type === "admin" ? "Administrator" : "Company Member"}
+            </p>
+          </div>
+        )}
+
+        <button
+          onClick={handleProfileClick}
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+        >
+          <User className="w-4 h-4" />
+          Profile
         </button>
 
-        {/* Profile Dropdown */}
-        <div className="relative profile-dropdown">
-          <button
-            onClick={toggleDropdown}
-            className="flex items-center gap-2 hover:bg-gray-50 p-2 rounded-lg transition-colors"
-          >
-            {loading ? (
-              <div className="w-8 h-8 bg-gray-300 rounded-full animate-pulse"></div>
-            ) : user ? (
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${getAvatarColor(
-                  user.username
-                )}`}
-              >
-                {getUserInitials(user.username)}
-              </div>
-            ) : (
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-gray-500 text-sm">?</span>
-              </div>
-            )}
-            <ChevronDown
-              className={`w-4 h-4 text-gray-500 transition-transform ${
-                showDropdown ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {/* Dropdown Menu */}
-          {showDropdown && (
-            <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md py-2 text-sm z-50 border">
-              {user && (
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <p className="font-medium text-gray-800">{user.username}</p>
-                  <p className="text-xs text-gray-500 capitalize">
-                    {user.type === "admin" ? "Administrator" : "Company Member"}
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={handleProfileClick}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                Profile
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-red-600"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-red-600"
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </button>
       </div>
+    )}
+  </div>
+</div>
+
     </div>
   );
 }
