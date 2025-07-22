@@ -28,6 +28,7 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ["Open", "Sent", "Accept", "Negotiation", "Decline"],
   },
+expectedPaymentDays: { type: Number, default: null }, // days after delivery
   createdAt: { type: Date, default: Date.now },
 });
 

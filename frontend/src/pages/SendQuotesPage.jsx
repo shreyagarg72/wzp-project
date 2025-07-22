@@ -486,12 +486,18 @@ const SendQuotesPage = () => {
     subject: "",
     message: "",
   });
+  const [paymentDaysMap, setPaymentDaysMap] = useState({});
   const [sendingEmail, setSendingEmail] = useState(false); // New state for tracking email send status
 
   useEffect(() => {
     fetchInquiries();
   }, []);
-
+  const handlePaymentDaysChange = (inquiryId, days) => {
+    setPaymentDaysMap((prev) => ({
+      ...prev,
+      [inquiryId]: parseInt(days) || 0,
+    }));
+  };
   const fetchInquiries = async () => {
     try {
       setLoading(true);
@@ -778,7 +784,7 @@ const SendQuotesPage = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ inquiryId }),
+        body: JSON.stringify({ inquiryId,expectedPaymentDays: paymentDaysMap[inquiryId] || null }),
       });
 
       const result = await response.json();
@@ -804,10 +810,10 @@ const SendQuotesPage = () => {
 
   const handleSendClick = () => {
     if (!selectedInquiry) return;
-    
+
     // Show confirmation dialog
     if (!confirm("Are you sure you want to send this quotation email?")) return;
-    
+
     // Proceed with sending
     sendResponse();
   };
@@ -938,6 +944,8 @@ const SendQuotesPage = () => {
                 onOrderAction={handleOrderAction}
                 onOpenEmailModal={openEmailModal}
                 calculatePrice={calculatePrice}
+                paymentDaysMap={paymentDaysMap}
+                onPaymentDaysChange={handlePaymentDaysChange}
               />
             ))
           )}

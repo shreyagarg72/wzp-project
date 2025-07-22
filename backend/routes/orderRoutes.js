@@ -1,13 +1,15 @@
-import express from 'express';
-import Order from '../models/Order.js';
-import Inquiry from '../models/Inquiry.js';
+import express from "express";
+import Order from "../models/Order.js";
+import Inquiry from "../models/Inquiry.js";
 import jwt from "jsonwebtoken";
 import { logActivity } from "../utils/logActivity.js"; // Assuming this is your utility to log activities
 const router = express.Router();
 
-router.post('/:action', async (req, res) => {
+router.post("/:action", async (req, res) => {
   const { action } = req.params;
-  const { inquiryId } = req.body;
+  //const { inquiryId } = req.body;
+  // In the accept action:
+  const { inquiryId, expectedPaymentDays } = req.body;
 
   const authHeader = req.header("Authorization");
   const token = authHeader?.replace("Bearer ", "");
@@ -21,19 +23,22 @@ router.post('/:action', async (req, res) => {
   }
 
   try {
-    if (!['accept', 'decline', 'edit'].includes(action)) {
-      return res.status(400).json({ error: 'Invalid action' });
+    if (!["accept", "decline", "edit"].includes(action)) {
+      return res.status(400).json({ error: "Invalid action" });
     }
 
     const inquiry = await Inquiry.findOne({ inquiryId });
-    if (!inquiry) return res.status(404).json({ error: 'Inquiry not found' });
+    if (!inquiry) return res.status(404).json({ error: "Inquiry not found" });
 
     const order = await Order.findOne({ inquiryId });
-    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (!order) return res.status(404).json({ error: "Order not found" });
 
-    if (action === 'accept') {
-      order.status = 'Accept';
-      inquiry.status = 'Fulfilled';
+    if (action === "accept") {
+      order.status = "Accept";
+      inquiry.status = "Fulfilled";
+      if (expectedPaymentDays !== undefined) {
+        order.expectedPaymentDays = expectedPaymentDays;
+      }
       inquiry.fulfilledAt = new Date();
       await order.save();
       await inquiry.save();
@@ -41,65 +46,64 @@ router.post('/:action', async (req, res) => {
       // ✅ Log activity
       await logActivity({
         userId: decodedUser.id,
-        action: 'Accepted Order',
-        targetType: 'Order',
+        action: "Accepted Order",
+        targetType: "Order",
         targetId: order._id,
         details: {
           inquiryId,
-          orderStatus: 'Accept',
+          orderStatus: "Accept",
         },
       });
 
-      return res.json({ message: 'Order accepted' });
+      return res.json({ message: "Order accepted" });
     }
 
-    if (action === 'decline') {
-      order.status = 'Decline';
+    if (action === "decline") {
+      order.status = "Decline";
       await order.save();
 
       // ✅ Log activity
       await logActivity({
         userId: decodedUser.id,
-        action: 'Declined Order',
-        targetType: 'Order',
+        action: "Declined Order",
+        targetType: "Order",
         targetId: order._id,
         details: {
           inquiryId,
-          orderStatus: 'Decline',
+          orderStatus: "Decline",
         },
       });
 
-      return res.json({ message: 'Order declined' });
+      return res.json({ message: "Order declined" });
     }
 
-    if (action === 'edit') {
-      order.status = 'Negotiation';
+    if (action === "edit") {
+      order.status = "Negotiation";
       await order.save();
 
-      inquiry.status = 'Completed';
+      inquiry.status = "Completed";
       await inquiry.save();
 
       // ✅ Log activity
       await logActivity({
         userId: decodedUser.id,
-        action: 'Requested Order Edit',
-        targetType: 'Order',
+        action: "Requested Order Edit",
+        targetType: "Order",
         targetId: order._id,
         details: {
           inquiryId,
-          newStatus: 'Negotiation',
+          newStatus: "Negotiation",
         },
       });
 
       return res.json({
-        message: 'Order moved to negotiation',
+        message: "Order moved to negotiation",
         order,
       });
     }
-
   } catch (err) {
-    console.error('Order action error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Order action error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -112,6 +116,5 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
-
 
 export default router;
