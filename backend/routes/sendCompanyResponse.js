@@ -672,7 +672,7 @@ router.post("/", async (req, res) => {
       })
       .join("");
     const delivery = parseFloat(deliveryCharges || 0);
-    const total = subtotal + delivery + totalGstAmount;
+    const total = subtotal + delivery ;
 
     const myCompany = {
       name: "WZP Tech Pvt Ltd",
@@ -731,7 +731,6 @@ router.post("/", async (req, res) => {
         <div style="margin-top:20px;text-align:right;">
           <p><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</p>
           <p><strong>Total Discount:</strong> -₹${totalDiscount.toFixed(2)}</p>
-          <p><strong>GST:</strong> ₹${totalGstAmount.toFixed(2)}</p>
           <p><strong>Delivery Charges:</strong> ₹${delivery.toFixed(2)}</p>
           <hr />
           <p style="font-size:18px;"><strong>Total Amount:</strong> ₹${total.toFixed(

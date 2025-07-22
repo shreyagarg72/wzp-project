@@ -486,6 +486,7 @@ const SendQuotesPage = () => {
     subject: "",
     message: "",
   });
+  const [sendingEmail, setSendingEmail] = useState(false); // New state for tracking email send status
 
   useEffect(() => {
     fetchInquiries();
@@ -680,6 +681,7 @@ const SendQuotesPage = () => {
       parseFloat(deliveryCharges[selectedInquiry._id]) || 0;
 
     try {
+      setSendingEmail(true); // Disable button
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/api/sendQuoteResponse`, {
         method: "POST",
@@ -721,6 +723,8 @@ const SendQuotesPage = () => {
     } catch (err) {
       console.error("Error sending response:", err);
       alert("Failed to send response.");
+    } finally {
+      setSendingEmail(false); // Re-enable button
     }
   };
 
@@ -800,7 +804,11 @@ const SendQuotesPage = () => {
 
   const handleSendClick = () => {
     if (!selectedInquiry) return;
+    
+    // Show confirmation dialog
     if (!confirm("Are you sure you want to send this quotation email?")) return;
+    
+    // Proceed with sending
     sendResponse();
   };
 
@@ -956,6 +964,7 @@ const SendQuotesPage = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                     placeholder="customer@company.com"
+                    disabled={sendingEmail}
                   />
                 </div>
 
@@ -971,6 +980,7 @@ const SendQuotesPage = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                     placeholder="manager@company.com"
+                    disabled={sendingEmail}
                   />
                 </div>
 
@@ -985,6 +995,7 @@ const SendQuotesPage = () => {
                       setEmailForm({ ...emailForm, subject: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                    disabled={sendingEmail}
                   />
                 </div>
 
@@ -999,6 +1010,7 @@ const SendQuotesPage = () => {
                     }
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                    disabled={sendingEmail}
                   />
                 </div>
               </div>
@@ -1006,15 +1018,24 @@ const SendQuotesPage = () => {
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={sendingEmail}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSendClick}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  disabled={sendingEmail}
+                  className={`px-4 py-2 rounded text-white flex items-center space-x-2 ${
+                    sendingEmail
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
                 >
-                  Send Email
+                  {sendingEmail && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  <span>{sendingEmail ? "Sending..." : "Send Email"}</span>
                 </button>
               </div>
             </div>
