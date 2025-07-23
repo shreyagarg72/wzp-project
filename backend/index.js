@@ -18,12 +18,26 @@ import orderRoutes from './routes/orderRoutes.js';
 import admin , { checkAndCreateNotifications }from './routes/admin.js';
 import delayedNotificationsRoute from './routes/delayedNotificationsRoute.js';
 const app = express();
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://wzp-project.netlify.app',
+];
+
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'https://wzp-project.netlify.app/'],
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps, curl, postman)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
+
 app.use(express.json());
 
 // MongoDB Connection
