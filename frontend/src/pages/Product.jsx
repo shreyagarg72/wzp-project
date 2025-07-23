@@ -8,7 +8,7 @@ import {
   FileText,
   Truck,
 } from "lucide-react";
-
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 export default function Product() {
   const [products, setProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -18,7 +18,7 @@ export default function Product() {
   useEffect(() => {
     setLoading(true);
     axios
-      .get("http://localhost:5000/api/products/overview")
+      .get( `${API_BASE_URL}/api/products/overview`)
       .then((res) => {
         setProducts(res.data);
         setLoading(false);

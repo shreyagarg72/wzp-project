@@ -45,7 +45,7 @@ import Orders from "../components/admin/Orders";
 import Customers from "../components/admin/Customers";
 import Analytics from "../components/admin/Analytics";
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const COLORS = ["#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
 
 const StatCard = ({ title, value, icon: Icon, color, loading }) => (
@@ -179,7 +179,7 @@ const Dashboard = () => {
       try {
         setLoading((prev) => ({ ...prev, orderStatus: true }));
         const res = await fetch(
-          "http://localhost:5000/api/admin/order-status-summary"
+          `${API_BASE_URL}/api/admin/order-status-summary`
         );
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
@@ -196,7 +196,7 @@ const Dashboard = () => {
       try {
         setLoading((prev) => ({ ...prev, weeklyInquiry: true }));
         const res = await fetch(
-          "http://localhost:5000/api/admin/weekly-inquiry-trend"
+         `${API_BASE_URL}/api/admin/weekly-inquiry-trend`
         );
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
@@ -213,7 +213,7 @@ const Dashboard = () => {
       try {
         setLoading((prev) => ({ ...prev, stats: true }));
         const res = await fetch(
-          "http://localhost:5000/api/admin/dashboard-stats"
+           `${API_BASE_URL}/api/admin/dashboard-stats`
         );
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();

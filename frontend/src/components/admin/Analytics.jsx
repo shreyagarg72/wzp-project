@@ -9,6 +9,7 @@ import {
   BarChart3,
   
 } from "lucide-react";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const Analytics = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [notifications, setNotifications] = useState([]);
@@ -28,7 +29,7 @@ const Analytics = () => {
   }, []);
 const fetchUsers = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/admin/analytics/users");
+      const response = await fetch(`${API_BASE_URL}/api/admin/analytics/users`);
       const data = await response.json();
       setUsers(data);
       setLoading(false);
@@ -48,7 +49,7 @@ const fetchUsers = async () => {
     setActivityLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/admin/analytics/user-activities/${userId}?limit=${limit}`
+        `${API_BASE_URL}/api/admin/analytics/user-activities/${userId}?limit=${limit}`
       );
       const data = await response.json();
       setUserActivities(data.activities || []);
@@ -62,7 +63,7 @@ const fetchUsers = async () => {
   const fetchUserPerformance = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/admin/analytics/user-performance?month=${selectedMonth}&year=${selectedYear}`
+        `${API_BASE_URL}/api/admin/analytics/user-performance?month=${selectedMonth}&year=${selectedYear}`
       );
       const data = await response.json();
       setUserPerformance(data);
@@ -99,7 +100,7 @@ const fetchUsers = async () => {
   const fetchAnalyticsData = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/admin/analytics/dashboard"
+          ` ${API_BASE_URL}/api/admin/analytics/dashboard`
       );
       const data = await response.json();
       setAnalyticsData(data);
@@ -113,7 +114,7 @@ const fetchUsers = async () => {
   const fetchNotifications = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/admin/analytics/notifications"
+       `${API_BASE_URL}/api/admin/analytics/notifications`
       );
       const data = await response.json();
       setNotifications(data);
@@ -126,7 +127,7 @@ const fetchUsers = async () => {
     setExportLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:5000/api/admin/analytics/export-excel",
+        `${API_BASE_URL}/api/admin/analytics/export-excel`,
         {
           method: "GET",
         }

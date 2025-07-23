@@ -36,7 +36,7 @@ import {
   UserPlus,
   UserCheck, Award,
 } from "lucide-react";
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const COLORS = ["#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
 
 const Orders = () => {
@@ -65,7 +65,7 @@ const Orders = () => {
       setLoading((prev) => ({ ...prev, topProducts: true }));
       setError((prev) => ({ ...prev, topProducts: null }));
       
-      const res = await fetch("http://localhost:5000/api/admin/top-products");
+      const res = await fetch(`${API_BASE_URL}/api/admin/top-products`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       console.log("Top products response:", data); // Debug log

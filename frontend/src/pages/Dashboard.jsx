@@ -7,7 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const Dashboard = () => {
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -24,10 +24,10 @@ const Dashboard = () => {
       try {
         const [customerRes, supplierRes, inquiryRes, logsRes] =
           await Promise.all([
-            axios.get("http://localhost:5000/api/customers"),
-            axios.get("http://localhost:5000/api/suppliers"),
-            axios.get("http://localhost:5000/api/inquiries"),
-            axios.get(`http://localhost:5000/api/activitylogs/user/${userId}`),
+            axios.get(`${API_BASE_URL}/api/customers`),
+            axios.get( `${API_BASE_URL}/api/suppliers`),
+            axios.get( `${API_BASE_URL}/api/inquiries`),
+            axios.get( `${API_BASE_URL}/api/activitylogs/user/${userId}`),
           ]);
 
         setCustomers(customerRes.data);
