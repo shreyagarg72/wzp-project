@@ -103,7 +103,7 @@ export default function Sidebar() {
     <div className="w-64 bg-[#FAFAFB] min-h-screen flex flex-col">
       {/* Header */}
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-indigo-600 px-4">WZP</h1>
+        <h1 className="text-2xl font-bold text-indigo-600 px-4">WESO</h1>
       </div>
 
       {/* Navigation */}

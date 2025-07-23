@@ -66,7 +66,7 @@ router.post("/", async (req, res) => {
           <p>Please provide a quote for the following products under inquiry <strong>${inquiryId}</strong>.</p> 
           ${productDetails}
           <p>Please respond at your earliest with availability and pricing.</p>
-          <p>Regards,<br/>${customer.companyName} Procurement Team</p>
+          <p>Regards,<br/>WESO TOOLS AND TRADERS</p>
         `,
       };
 
