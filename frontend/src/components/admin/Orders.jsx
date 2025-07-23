@@ -94,7 +94,7 @@ const Orders = () => {
     try {
       setLoading((prev) => ({ ...prev, recentOrders: true }));
       setError((prev) => ({ ...prev, recentOrders: null }));
-      const res = await fetch(`http://localhost:5000/api/admin/orders/recent`);
+      const res = await fetch(`${API_BASE_URL}/api/admin/orders/recent`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       setRecentOrders(Array.isArray(data) ? data : []);
@@ -112,7 +112,7 @@ const Orders = () => {
       setLoading((prev) => ({ ...prev, delayedActions: true }));
       setError((prev) => ({ ...prev, delayedActions: null }));
       const res = await fetch(
-        `http://localhost:5000/api/admin/orders/delayed-actions`
+        `${API_BASE_URL}/api/admin/orders/delayed-actions`
       );
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();

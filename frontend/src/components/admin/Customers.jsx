@@ -20,6 +20,7 @@ import {
 import {
   Package
 } from "lucide-react";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 import {
   TrendingUp,
   Users,
@@ -79,7 +80,7 @@ const Customers = () => {
     try {
       setLoading((prev) => ({ ...prev, customerCLV: true }));
       setError((prev) => ({ ...prev, customerCLV: null }));
-      const res = await fetch(`http://localhost:5000/api/admin/customer-lifetime-value`);
+      const res = await fetch(`${API_BASE_URL}/api/admin/customer-lifetime-value`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       setCustomerCLV(data);
@@ -95,7 +96,7 @@ const Customers = () => {
     try {
       setLoading((prev) => ({ ...prev, customerSegmentation: true }));
       setError((prev) => ({ ...prev, customerSegmentation: null }));
-      const res = await fetch(`http://localhost:5000/api/admin/customer-segmentation`);
+      const res = await fetch(`${API_BASE_URL}/api/admin/customer-segmentation`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       setCustomerSegmentation(data);
@@ -118,7 +119,7 @@ const Customers = () => {
     try {
       setLoading((prev) => ({ ...prev, topCustomers: true }));
       setError((prev) => ({ ...prev, topCustomers: null }));
-      const res = await fetch(`http://localhost:5000/api/admin/top-customers`);
+      const res = await fetch(`${API_BASE_URL}/api/admin/top-customers`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       setTopCustomers(Array.isArray(data) ? data : []);
