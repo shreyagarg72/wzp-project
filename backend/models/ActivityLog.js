@@ -4,25 +4,25 @@ const ActivityLogSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: false,
   },
   action: {
     type: String,
-    required: true
+    required: true,
   },
   targetType: {
-    type: String // e.g. "Customer", "Inquiry", "Supplier"
+    type: String, // e.g. "Customer", "Inquiry", "Supplier"
   },
   targetId: {
-    type: mongoose.Schema.Types.ObjectId // ID of the affected item
+    type: mongoose.Schema.Types.ObjectId, // ID of the affected item
   },
   details: {
-    type: Object // optional: { name: "ABC Corp", status: "Pending" }
+    type: Object, // optional: { name: "ABC Corp", status: "Pending" }
   },
   timestamp: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 export default mongoose.model("ActivityLog", ActivityLogSchema);
